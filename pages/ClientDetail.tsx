@@ -58,13 +58,15 @@ const ClientDetail: React.FC = () => {
     e.preventDefault();
     if (!id || !label || !street) return;
 
+    // Added missing updatedAt property to satisfy Address interface
     const newAddress: Address = {
       id: uuidv4(),
       clientId: id,
       label,
       street,
       zip,
-      city
+      city,
+      updatedAt: Date.now()
     };
 
     await db.addresses.add(newAddress);

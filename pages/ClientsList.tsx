@@ -31,6 +31,7 @@ const ClientsList: React.FC = () => {
     e.preventDefault();
     if (!name) return;
 
+    // Added missing updatedAt and agentId properties to satisfy Client interface
     const newClient: Client = {
       id: uuidv4(),
       name,
@@ -38,7 +39,9 @@ const ClientsList: React.FC = () => {
       phone,
       company,
       notes,
-      createdAt: Date.now()
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      agentId: localStorage.getItem('solar_agent_name') || 'Personnel'
     };
 
     await db.clients.add(newClient);

@@ -57,7 +57,7 @@ const VisitsList: React.FC = () => {
     e.preventDefault();
     if (!selectedClientId || !selectedAddressId || !visitDate) return;
 
-    // Added missing 'report' property to satisfy Visit interface defined in types.ts
+    // Added missing updatedAt and agentName properties to satisfy Visit interface
     const newVisit: Visit = {
       id: uuidv4(),
       clientId: selectedClientId,
@@ -67,7 +67,9 @@ const VisitsList: React.FC = () => {
       requirements: [],
       photos: [],
       notes: '',
-      report: ''
+      report: '',
+      updatedAt: Date.now(),
+      agentName: localStorage.getItem('solar_agent_name') || 'Personnel'
     };
 
     await db.visits.add(newVisit);

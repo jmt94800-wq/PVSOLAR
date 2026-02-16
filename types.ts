@@ -5,25 +5,28 @@ export interface Client {
   email: string;
   phone: string;
   company?: string;
-  notes: string; // Commentaire global sur le client
+  notes: string;
   createdAt: number;
+  updatedAt: number; // Pour le tracking de synchro
+  agentId: string;    // Qui a créé le client
 }
 
 export interface Address {
   id: string;
   clientId: string;
-  label: string; // e.g., "Maison", "Bureaux"
+  label: string;
   street: string;
   city: string;
   zip: string;
+  updatedAt: number;
 }
 
 export interface Device {
   id: string;
   name: string;
-  maxPower: number; // Watts
-  usageDuration: number; // Hours per day
-  hourlyPower: number; // Consumption per hour (kWh equivalent)
+  maxPower: number;
+  usageDuration: number;
+  hourlyPower: number;
 }
 
 export interface VisitRequirement {
@@ -35,12 +38,14 @@ export interface Visit {
   id: string;
   clientId: string;
   addressId: string;
-  date: string; // ISO format
+  date: string;
   status: 'SCHEDULED' | 'COMPLETED' | 'CANCELLED';
   requirements: VisitRequirement[];
-  photos: string[]; // Base64 strings
-  notes: string; // Notes rapides / observations
-  report: string; // Rapport formel de visite
+  photos: string[];
+  notes: string;
+  report: string;
+  updatedAt: number;
+  agentName: string; // Nom de l'agent qui a fait la visite
 }
 
 export interface AppDB {

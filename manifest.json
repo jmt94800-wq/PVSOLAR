@@ -1,0 +1,17 @@
+
+{
+  "short_name": "SolarVisit",
+  "name": "SolarVisit Pro - Gestion Photovoltaïque",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/3106/3106856.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#2563eb",
+  "background_color": "#f8fafc"
+}
