@@ -1,0 +1,7 @@
+{
+  "name": "SolarVisit Pro",
+  "description": "Une application de gestion de visites commerciales pour le secteur photovoltaïque, fonctionnant hors-ligne avec export Excel.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
