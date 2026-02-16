@@ -7,7 +7,7 @@ import { compressImage } from '../utils/image';
 import { 
   ArrowLeft, Camera, Trash2, Plus, Minus, 
   CheckCircle, Zap, Save, FileText, 
-  MapPin, Notebook, Loader2, Edit3, X, BarChart3
+  MapPin, Notebook, Loader2, Edit3, X, BarChart3, Clock
 } from 'lucide-react';
 
 const VisitDetail: React.FC = () => {
@@ -206,9 +206,18 @@ const VisitDetail: React.FC = () => {
                     </p>
                     {isOverridden && <span className="w-1.5 h-1.5 rounded-full bg-blue-500" title="Valeurs personnalisées" />}
                   </div>
-                  <p className="text-[10px] text-slate-400 uppercase font-bold tracking-tighter">
-                    {req?.overrideHourlyPower ?? device.hourlyPower}kW • {req?.overrideUsageDuration ?? device.usageDuration}h/j
-                  </p>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <p className="text-[10px] text-slate-400 uppercase font-bold tracking-tighter">
+                      {req?.overrideHourlyPower ?? device.hourlyPower} kW/h
+                    </p>
+                    <span className="text-slate-200">•</span>
+                    <div className="flex items-center gap-1">
+                       <Clock size={10} className="text-blue-400" />
+                       <p className="text-[10px] text-blue-600 font-black tracking-tight">
+                         {req?.overrideUsageDuration ?? device.usageDuration} h/j
+                       </p>
+                    </div>
+                  </div>
                 </div>
                 <div className="flex items-center gap-2">
                   {qty > 0 && (

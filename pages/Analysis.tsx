@@ -5,7 +5,7 @@ import { db } from '../db';
 import { Visit, Client, Device } from '../types';
 import { 
   BarChart3, ArrowLeft, Zap, TrendingUp, 
-  Activity, ArrowRight, User, Calendar
+  Activity, ArrowRight, User, Calendar, Clock, Loader2 as LoaderIcon
 } from 'lucide-react';
 
 const Analysis: React.FC = () => {
@@ -64,7 +64,7 @@ const Analysis: React.FC = () => {
 
   if (loading) return (
     <div className="flex items-center justify-center min-h-[60vh]">
-      <Loader2 className="animate-spin text-blue-600" size={32} />
+      <LoaderIcon className="animate-spin text-blue-600" size={32} />
     </div>
   );
 
@@ -137,7 +137,7 @@ const Analysis: React.FC = () => {
                 </div>
               </div>
               <p className="mt-4 text-[10px] font-medium text-blue-100/70 border-t border-white/10 pt-4">
-                Correspond à la somme des puissances maximales de tous les appareils si allumés simultanément.
+                Somme des puissances maximales personnalisées pour cette visite.
               </p>
             </div>
 
@@ -153,11 +153,11 @@ const Analysis: React.FC = () => {
               </div>
               <div className="mt-6 space-y-3">
                 <div className="flex justify-between items-center text-sm">
-                  <span className="text-slate-400 font-medium">Consommation Journalière</span>
+                  <span className="text-slate-400 font-medium">Production journalière cible</span>
                   <span className="font-black text-slate-800">{stats?.totalDailyConsumption.toFixed(1)} kWh/j</span>
                 </div>
                 <div className="w-full bg-slate-50 h-2 rounded-full overflow-hidden">
-                  <div className="bg-green-500 h-full rounded-full" style={{ width: '65%' }}></div>
+                  <div className="bg-green-500 h-full rounded-full" style={{ width: '100%' }}></div>
                 </div>
               </div>
             </div>
@@ -165,7 +165,7 @@ const Analysis: React.FC = () => {
 
           {/* Liste détaillée */}
           <section className="space-y-3">
-            <h3 className="text-xs font-black uppercase text-slate-400 tracking-widest px-1">Détails par appareil</h3>
+            <h3 className="text-xs font-black uppercase text-slate-400 tracking-widest px-1">Détails techniques par appareil</h3>
             <div className="bg-white rounded-3xl border border-slate-100 shadow-sm divide-y divide-slate-50 overflow-hidden">
               {data.visit.requirements.map((req, idx) => {
                 const baseDevice = data.catalogue.find(d => d.id === req.deviceId);
@@ -174,17 +174,29 @@ const Analysis: React.FC = () => {
                 const name = req.overrideName || baseDevice.name;
                 const pMax = req.overrideMaxPower ?? baseDevice.maxPower;
                 const pHourly = req.overrideHourlyPower ?? baseDevice.hourlyPower;
+                const duration = req.overrideUsageDuration ?? baseDevice.usageDuration;
                 const qty = req.quantity;
 
                 return (
                   <div key={idx} className="p-4 flex items-center justify-between">
                     <div>
                       <p className="text-sm font-bold text-slate-800">{name} <span className="text-slate-300 font-medium">x{qty}</span></p>
-                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">Impact : { (pHourly * qty).toFixed(2) } kW/h</p>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">
+                          {(pHourly * qty).toFixed(2)} kW/h
+                        </p>
+                        <span className="text-slate-200">•</span>
+                        <div className="flex items-center gap-1">
+                          <Clock size={10} className="text-blue-400" />
+                          <p className="text-[10px] text-blue-600 font-black">
+                            {duration} h/j
+                          </p>
+                        </div>
+                      </div>
                     </div>
                     <div className="text-right">
-                      <p className="text-sm font-black text-slate-700">{ (pMax * qty).toLocaleString() } W</p>
-                      <p className="text-[9px] text-blue-500 font-bold uppercase">Puis. Max</p>
+                      <p className="text-sm font-black text-slate-700">{(pMax * qty).toLocaleString()} W</p>
+                      <p className="text-[9px] text-blue-500 font-bold uppercase">Puissance Max</p>
                     </div>
                   </div>
                 );
@@ -205,8 +217,3 @@ const Analysis: React.FC = () => {
 };
 
 export default Analysis;
-
-// Utility Icon Loader
-const Loader2 = ({ className, size }: { className?: string, size?: number }) => (
-  <Activity className={className} size={size} />
-);
