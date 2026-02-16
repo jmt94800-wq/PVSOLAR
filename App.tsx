@@ -8,7 +8,8 @@ import {
   Zap, 
   ClipboardList,
   Download,
-  BarChart3
+  BarChart3,
+  ShieldCheck
 } from 'lucide-react';
 
 import Dashboard from './pages/Dashboard';
@@ -20,6 +21,8 @@ import Catalogue from './pages/Catalogue';
 import Calendar from './pages/Calendar';
 import ExportPage from './pages/ExportPage';
 import Analysis from './pages/Analysis';
+import ManagerInterventions from './pages/ManagerInterventions';
+import TeamCalendar from './pages/TeamCalendar';
 
 const Navigation = () => {
   const location = useLocation();
@@ -29,13 +32,13 @@ const Navigation = () => {
     { path: '/calendar', icon: CalendarIcon, label: 'Agenda' },
     { path: '/visits', icon: ClipboardList, label: 'Visites' },
     { path: '/clients', icon: Users, label: 'Clients' },
-    { path: '/catalogue', icon: Zap, label: 'Appareils' },
+    { path: '/manager/interventions', icon: ShieldCheck, label: 'Supervision' },
   ];
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-2 py-2 z-50 flex justify-around items-center">
       {navItems.map((item) => {
-        const isActive = location.pathname === item.path;
+        const isActive = location.pathname.startsWith(item.path) && (item.path !== '/' || location.pathname === '/');
         return (
           <Link
             key={item.path}
@@ -84,6 +87,8 @@ const App: React.FC = () => {
             <Route path="/export" element={<ExportPage />} />
             <Route path="/analysis" element={<Analysis />} />
             <Route path="/analysis/:id" element={<Analysis />} />
+            <Route path="/manager/interventions" element={<ManagerInterventions />} />
+            <Route path="/manager/calendar" element={<TeamCalendar />} />
           </Routes>
         </main>
 

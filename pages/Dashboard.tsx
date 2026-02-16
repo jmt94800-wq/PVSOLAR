@@ -5,7 +5,8 @@ import { db } from '../db';
 import { Visit, Client, Device } from '../types';
 import { 
   ClipboardList, Users, Zap, ChevronRight, 
-  Calendar as CalendarIcon, PackageOpen, Database, Cloud
+  Calendar as CalendarIcon, PackageOpen, Database, Cloud,
+  ShieldCheck, TrendingUp
 } from 'lucide-react';
 
 const Dashboard: React.FC = () => {
@@ -58,13 +59,34 @@ const Dashboard: React.FC = () => {
         </div>
         <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex flex-col items-center">
           <span className="text-2xl font-bold text-blue-600">{upcomingVisits.length}</span>
-          <span className="text-[10px] text-slate-400 uppercase font-semibold text-center">Mes RV</span>
+          <span className="text-[10px] text-slate-400 uppercase font-semibold text-center">RV Équipe</span>
         </div>
         <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex flex-col items-center">
           <span className="text-2xl font-bold text-green-600">{data.visits.filter(v => v.status === 'COMPLETED').length}</span>
-          <span className="text-[10px] text-slate-400 uppercase font-semibold text-center">Terminées</span>
+          <span className="text-[10px] text-slate-400 uppercase font-semibold text-center">Réussies</span>
         </div>
       </div>
+
+      {/* Team Pilotage Quick Link */}
+      <section className="bg-slate-900 p-6 rounded-[32px] text-white shadow-xl shadow-slate-200 space-y-4">
+        <div className="flex justify-between items-center">
+           <div>
+              <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest">Interface Responsable</p>
+              <h3 className="text-lg font-bold flex items-center gap-2">Pilotage Activité <TrendingUp size={18} /></h3>
+           </div>
+           <ShieldCheck className="text-blue-400" size={32} />
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <Link to="/manager/interventions" className="bg-white/10 hover:bg-white/20 transition-colors p-3 rounded-2xl flex flex-col items-center gap-2">
+            <ClipboardList size={20} />
+            <span className="text-[9px] font-bold uppercase">Suivi Visites</span>
+          </Link>
+          <Link to="/manager/calendar" className="bg-white/10 hover:bg-white/20 transition-colors p-3 rounded-2xl flex flex-col items-center gap-2">
+            <CalendarIcon size={20} />
+            <span className="text-[9px] font-bold uppercase">Planning Équipe</span>
+          </Link>
+        </div>
+      </section>
 
       <section className="space-y-4">
         <div className="flex justify-between items-center px-1">
@@ -72,7 +94,7 @@ const Dashboard: React.FC = () => {
             <CalendarIcon size={18} className="text-blue-500" />
             Agenda Partagé
           </h2>
-          <Link to="/calendar" className="text-blue-600 text-xs font-bold uppercase">Tout voir</Link>
+          <Link to="/manager/calendar" className="text-blue-600 text-xs font-bold uppercase">Superviser</Link>
         </div>
 
         <div className="space-y-3">
@@ -87,7 +109,7 @@ const Dashboard: React.FC = () => {
                   <div className="flex items-center gap-2">
                     <h3 className="font-bold text-slate-800">{visit.client?.name}</h3>
                     {visit.agentName && (
-                       <span className="text-[8px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded-md font-bold uppercase">Par {visit.agentName}</span>
+                       <span className="text-[8px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded-md font-bold uppercase tracking-tight">Agent: {visit.agentName}</span>
                     )}
                   </div>
                   <p className="text-xs text-slate-500 mt-0.5">{new Date(visit.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}</p>
@@ -96,24 +118,6 @@ const Dashboard: React.FC = () => {
               </Link>
             ))
           )}
-        </div>
-      </section>
-
-      <section className="space-y-4">
-        <h2 className="text-lg font-bold flex items-center gap-2">
-          <PackageOpen size={18} className="text-orange-500" />
-          Performance Équipe
-        </h2>
-        <div className="bg-gradient-to-br from-blue-600 to-blue-800 p-6 rounded-[32px] text-white shadow-xl shadow-blue-200">
-           <p className="text-xs font-bold text-blue-100 uppercase tracking-widest opacity-80">Total Interventions</p>
-           <h4 className="text-4xl font-black mt-1">{data.visits.length} <span className="text-sm font-medium opacity-60">Visites</span></h4>
-           <div className="mt-6 flex justify-between items-end border-t border-white/10 pt-4">
-              <div>
-                <p className="text-[10px] font-bold uppercase opacity-60">Clients suivis</p>
-                <p className="text-lg font-bold">{data.clients.length}</p>
-              </div>
-              <Link to="/export" className="bg-white/20 backdrop-blur-md px-4 py-2 rounded-xl text-[10px] font-black uppercase">Consulter les rapports</Link>
-           </div>
         </div>
       </section>
 
