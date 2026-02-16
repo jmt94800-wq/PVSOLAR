@@ -1,7 +1,18 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { db } from '../db';
-import { FileDown, Database, AlertCircle, Cloud, User, ShieldCheck, RefreshCw } from 'lucide-react';
+import { 
+  FileDown, 
+  Database, 
+  AlertCircle, 
+  Cloud, 
+  User, 
+  ShieldCheck, 
+  RefreshCw, 
+  FileUp, 
+  AlertTriangle,
+  CheckCircle2
+} from 'lucide-react';
 import * as XLSX from 'xlsx';
 
 const ExportPage: React.FC = () => {
@@ -9,6 +20,8 @@ const ExportPage: React.FC = () => {
   const [teamId, setTeamId] = useState(localStorage.getItem('solar_team_id') || '');
   const [agentName, setAgentName] = useState(localStorage.getItem('solar_agent_name') || '');
   const [isSyncing, setIsSyncing] = useState(false);
+  const [importStatus, setImportStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const saveConfig = () => {
     localStorage.setItem('solar_team_id', teamId);
@@ -108,25 +121,76 @@ const ExportPage: React.FC = () => {
         devices: await db.devices.toArray(),
         visits: await db.visits.toArray(),
         teamId: localStorage.getItem('solar_team_id'),
-        agentName: localStorage.getItem('solar_agent_name')
+        agentName: localStorage.getItem('solar_agent_name'),
+        exportDate: new Date().toISOString()
       };
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `SolarVisit_Backup_${Date.now()}.json`;
+      a.download = `SolarVisit_RESTORE_FILE_${new Date().toISOString().split('T')[0]}.json`;
       a.click();
     } catch (e) {
       console.error(e);
+      alert("Erreur lors de la création du fichier de sauvegarde.");
     } finally {
       setLoading(false);
     }
   };
 
+  const handleImportFile = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      try {
+        setImportStatus('loading');
+        const content = e.target?.result as string;
+        const data = JSON.parse(content);
+
+        // Validation simple de la structure
+        if (!data.clients || !data.visits || !data.devices) {
+          throw new Error("Format de fichier invalide");
+        }
+
+        if (!window.confirm("ATTENTION : Cette action va supprimer toutes les données actuelles de l'application et les remplacer par le contenu du fichier. Continuer ?")) {
+          setImportStatus('idle');
+          return;
+        }
+
+        // Restauration dans une transaction
+        await db.transaction('rw', [db.clients, db.addresses, db.devices, db.visits], async () => {
+          await db.clients.clear();
+          await db.addresses.clear();
+          await db.devices.clear();
+          await db.visits.clear();
+
+          if (data.clients.length > 0) await db.clients.bulkAdd(data.clients);
+          if (data.addresses?.length > 0) await db.addresses.bulkAdd(data.addresses);
+          if (data.devices.length > 0) await db.devices.bulkAdd(data.devices);
+          if (data.visits.length > 0) await db.visits.bulkAdd(data.visits);
+        });
+
+        // Restauration des paramètres locaux
+        if (data.teamId) localStorage.setItem('solar_team_id', data.teamId);
+        if (data.agentName) localStorage.setItem('solar_agent_name', data.agentName);
+
+        setImportStatus('success');
+        setTimeout(() => window.location.reload(), 1500); // Rechargement pour rafraîchir tous les contextes
+      } catch (err) {
+        console.error(err);
+        setImportStatus('error');
+        alert("Erreur lors de l'importation : Le fichier est peut-être corrompu ou invalide.");
+      }
+    };
+    reader.readAsText(file);
+  };
+
   return (
     <div className="space-y-6 pb-12">
       <div className="flex items-center gap-3">
-        <h2 className="text-xl font-bold">Équipe & Export</h2>
+        <h2 className="text-xl font-bold">Équipe & Maintenance</h2>
       </div>
 
       <section className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm space-y-4">
@@ -180,17 +244,10 @@ const ExportPage: React.FC = () => {
         </div>
       </section>
 
-      <div className="bg-amber-50 p-5 rounded-3xl border border-amber-100 flex gap-4 items-start">
-        <AlertCircle className="text-amber-500 shrink-0 mt-0.5" size={20} />
-        <div>
-          <h4 className="font-bold text-amber-900 text-sm">Rapport Complet</h4>
-          <p className="text-amber-700 text-[10px] mt-1 leading-relaxed font-medium">
-            L'export inclut désormais le détail précis de chaque équipement par client pour vos devis photovoltaïques.
-          </p>
-        </div>
-      </div>
-
+      {/* SECTION EXPORT */}
       <div className="grid gap-3">
+        <h3 className="text-[10px] font-black uppercase text-slate-400 tracking-widest px-1">Exports de données</h3>
+        
         <button 
           onClick={exportToExcel}
           disabled={loading}
@@ -210,15 +267,60 @@ const ExportPage: React.FC = () => {
           disabled={loading}
           className="bg-white p-5 rounded-[28px] border border-slate-100 shadow-sm flex items-center gap-4 hover:border-blue-200 transition-all active:scale-95"
         >
-          <div className="w-12 h-12 bg-slate-50 text-slate-600 rounded-2xl flex items-center justify-center shrink-0">
+          <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center shrink-0">
             <Database size={24} />
           </div>
           <div className="text-left">
-            <h3 className="font-black text-slate-800 text-sm">Sauvegarde JSON</h3>
-            <p className="text-[10px] text-slate-400 font-medium">Format technique pour restauration complète.</p>
+            <h3 className="font-black text-slate-800 text-sm">Fichier de Restauration (.json)</h3>
+            <p className="text-[10px] text-slate-400 font-medium">Contient TOUTE la base de données.</p>
           </div>
         </button>
       </div>
+
+      {/* SECTION MAINTENANCE / IMPORT */}
+      <section className="bg-slate-50 p-6 rounded-[32px] border border-slate-200 space-y-4">
+        <div className="flex items-center gap-2">
+          <AlertTriangle size={18} className="text-amber-500" />
+          <h3 className="text-xs font-black uppercase text-slate-600 tracking-widest">Maintenance & Restauration</h3>
+        </div>
+
+        <p className="text-[10px] text-slate-500 leading-relaxed italic px-1">
+          Utilisez cette section uniquement pour reconstruire votre application à partir d'un fichier de sauvegarde précédemment exporté.
+        </p>
+
+        <input 
+          type="file" 
+          ref={fileInputRef} 
+          className="hidden" 
+          accept=".json" 
+          onChange={handleImportFile} 
+        />
+
+        <button 
+          onClick={() => fileInputRef.current?.click()}
+          disabled={importStatus === 'loading'}
+          className={`w-full flex items-center justify-center gap-3 py-5 rounded-2xl font-black text-xs uppercase tracking-widest border-2 border-dashed transition-all active:scale-95 ${
+            importStatus === 'success' 
+              ? 'bg-green-50 border-green-200 text-green-600' 
+              : 'bg-white border-slate-200 text-slate-400 hover:border-amber-200 hover:text-amber-600'
+          }`}
+        >
+          {importStatus === 'loading' ? (
+            <RefreshCw size={18} className="animate-spin" />
+          ) : importStatus === 'success' ? (
+            <CheckCircle2 size={18} />
+          ) : (
+            <FileUp size={18} />
+          )}
+          {importStatus === 'loading' ? 'Importation en cours...' : importStatus === 'success' ? 'Restauré avec succès !' : 'Importer une sauvegarde'}
+        </button>
+
+        {importStatus === 'error' && (
+          <div className="flex items-center gap-2 p-3 bg-red-50 text-red-600 rounded-xl text-[10px] font-bold">
+            <AlertCircle size={14} /> Une erreur est survenue lors de l'importation.
+          </div>
+        )}
+      </section>
     </div>
   );
 };
