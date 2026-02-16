@@ -6,7 +6,7 @@ import { Client, Address, Visit } from '../types';
 import { 
   ArrowLeft, MapPin, Plus, Trash2, 
   Mail, Phone, Building2, ClipboardList,
-  ChevronRight, User, Save, FileText, Loader2
+  ChevronRight, User, Save, FileText, Loader2, BarChart3
 } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -58,7 +58,6 @@ const ClientDetail: React.FC = () => {
     e.preventDefault();
     if (!id || !label || !street) return;
 
-    // Added missing updatedAt property to satisfy Address interface
     const newAddress: Address = {
       id: uuidv4(),
       clientId: id,
@@ -97,9 +96,19 @@ const ClientDetail: React.FC = () => {
         <button onClick={() => navigate('/clients')} className="p-2 -ml-2 text-slate-600">
           <ArrowLeft size={24} />
         </button>
-        <button onClick={handleDeleteClient} className="text-red-500 p-2 bg-red-50 rounded-xl">
-          <Trash2 size={20} />
-        </button>
+        <div className="flex items-center gap-2">
+          {visits.length > 0 && (
+            <Link 
+              to={`/analysis/${visits[0].id}`} 
+              className="flex items-center gap-2 px-3 py-2 bg-blue-50 text-blue-600 rounded-xl text-xs font-bold"
+            >
+              <BarChart3 size={16} /> Dernière Analyse
+            </Link>
+          )}
+          <button onClick={handleDeleteClient} className="text-red-500 p-2 bg-red-50 rounded-xl">
+            <Trash2 size={20} />
+          </button>
+        </div>
       </div>
 
       <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm space-y-5">

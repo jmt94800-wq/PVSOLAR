@@ -1,15 +1,14 @@
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { HashRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
 import { 
   LayoutDashboard, 
   Users, 
   Calendar as CalendarIcon, 
-  Settings, 
-  PlusCircle, 
   Zap, 
   ClipboardList,
-  Download
+  Download,
+  BarChart3
 } from 'lucide-react';
 
 import Dashboard from './pages/Dashboard';
@@ -20,6 +19,7 @@ import VisitDetail from './pages/VisitDetail';
 import Catalogue from './pages/Catalogue';
 import Calendar from './pages/Calendar';
 import ExportPage from './pages/ExportPage';
+import Analysis from './pages/Analysis';
 
 const Navigation = () => {
   const location = useLocation();
@@ -62,9 +62,14 @@ const App: React.FC = () => {
             <Zap className="fill-yellow-400 text-yellow-500" size={24} />
             SolarVisit <span className="text-slate-400 font-light">Pro</span>
           </h1>
-          <Link to="/export" className="p-2 text-slate-500 hover:text-blue-600 transition-colors">
-            <Download size={20} />
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link to="/analysis" className="p-2 text-slate-500 hover:text-blue-600 transition-colors">
+              <BarChart3 size={20} />
+            </Link>
+            <Link to="/export" className="p-2 text-slate-500 hover:text-blue-600 transition-colors">
+              <Download size={20} />
+            </Link>
+          </div>
         </header>
 
         <main className="container mx-auto max-w-lg p-4">
@@ -77,6 +82,8 @@ const App: React.FC = () => {
             <Route path="/catalogue" element={<Catalogue />} />
             <Route path="/calendar" element={<Calendar />} />
             <Route path="/export" element={<ExportPage />} />
+            <Route path="/analysis" element={<Analysis />} />
+            <Route path="/analysis/:id" element={<Analysis />} />
           </Routes>
         </main>
 

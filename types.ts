@@ -7,8 +7,8 @@ export interface Client {
   company?: string;
   notes: string;
   createdAt: number;
-  updatedAt: number; // Pour le tracking de synchro
-  agentId: string;    // Qui a créé le client
+  updatedAt: number;
+  agentId: string;
 }
 
 export interface Address {
@@ -32,6 +32,11 @@ export interface Device {
 export interface VisitRequirement {
   deviceId: string;
   quantity: number;
+  // Surcharges spécifiques à cette visite
+  overrideName?: string;
+  overrideMaxPower?: number;
+  overrideUsageDuration?: number;
+  overrideHourlyPower?: number;
 }
 
 export interface Visit {
@@ -45,7 +50,7 @@ export interface Visit {
   notes: string;
   report: string;
   updatedAt: number;
-  agentName: string; // Nom de l'agent qui a fait la visite
+  agentName: string;
 }
 
 export interface AppDB {

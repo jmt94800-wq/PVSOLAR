@@ -1,13 +1,13 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { db } from '../db';
 import { Visit, Client, Address, Device, VisitRequirement } from '../types';
 import { compressImage } from '../utils/image';
 import { 
   ArrowLeft, Camera, Trash2, Plus, Minus, 
-  CheckCircle, Zap, Save, FileText, Image as ImageIcon,
-  MapPin, Notebook, Loader2
+  CheckCircle, Zap, Save, FileText, 
+  MapPin, Notebook, Loader2, Edit3, X, BarChart3
 } from 'lucide-react';
 
 const VisitDetail: React.FC = () => {
@@ -25,6 +25,9 @@ const VisitDetail: React.FC = () => {
   const [report, setReport] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [isCompressing, setIsCompressing] = useState(false);
+
+  // Modal for editing device requirement
+  const [editingReq, setEditingReq] = useState<{ req: VisitRequirement, device: Device } | null>(null);
 
   useEffect(() => {
     const loadData = async () => {
@@ -63,12 +66,21 @@ const VisitDetail: React.FC = () => {
     });
   };
 
+  const handleSaveOverride = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingReq) return;
+    
+    setRequirements(prev => prev.map(r => 
+      r.deviceId === editingReq.req.deviceId ? editingReq.req : r
+    ));
+    setEditingReq(null);
+  };
+
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
     
     setIsCompressing(true);
-    // Fixed: Cast the array from FileList to File[] to ensure individual items are recognized as Blobs
     const fileList = Array.from(files) as File[];
     
     for (const file of fileList) {
@@ -99,7 +111,8 @@ const VisitDetail: React.FC = () => {
       photos,
       notes,
       report,
-      status: complete ? 'COMPLETED' : visit.status
+      status: complete ? 'COMPLETED' : visit.status,
+      updatedAt: Date.now()
     };
 
     await db.visits.put(updatedVisit);
@@ -113,7 +126,9 @@ const VisitDetail: React.FC = () => {
   const totalConsumption = requirements.reduce((acc, req) => {
     const dev = catalogue.find(d => d.id === req.deviceId);
     if (!dev) return acc;
-    return acc + (dev.hourlyPower * dev.usageDuration * req.quantity);
+    const power = req.overrideHourlyPower ?? dev.hourlyPower;
+    const duration = req.overrideUsageDuration ?? dev.usageDuration;
+    return acc + (power * duration * req.quantity);
   }, 0);
 
   return (
@@ -123,6 +138,12 @@ const VisitDetail: React.FC = () => {
           <ArrowLeft size={24} />
         </button>
         <div className="flex items-center gap-2">
+          <Link 
+            to={`/analysis/${id}`}
+            className="text-slate-600 bg-white border border-slate-200 p-2 rounded-xl transition-colors hover:bg-slate-50"
+          >
+            <BarChart3 size={20} />
+          </Link>
            <button 
             disabled={isSaving}
             onClick={() => handleSave(false)}
@@ -145,9 +166,14 @@ const VisitDetail: React.FC = () => {
       <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm space-y-3">
         <div>
           <h2 className="text-xl font-black text-slate-800">{client.name}</h2>
-          <div className="flex items-center gap-1.5 text-xs text-slate-500 mt-1">
-            <MapPin size={12} className="text-red-500" />
-            <span className="font-medium underline decoration-red-200">{address?.label}: {address?.street}</span>
+          <div className="flex items-center justify-between mt-1">
+            <div className="flex items-center gap-1.5 text-xs text-slate-500">
+              <MapPin size={12} className="text-red-500" />
+              <span className="font-medium underline decoration-red-200">{address?.label}: {address?.street}</span>
+            </div>
+            <Link to={`/analysis/${id}`} className="text-[10px] font-black text-blue-600 bg-blue-50 px-2 py-1 rounded-lg uppercase tracking-widest flex items-center gap-1">
+              Détails Analyse <BarChart3 size={10} />
+            </Link>
           </div>
         </div>
         <div className="flex gap-3 pt-2">
@@ -169,26 +195,134 @@ const VisitDetail: React.FC = () => {
           {catalogue.map((device) => {
             const req = requirements.find(r => r.deviceId === device.id);
             const qty = req?.quantity || 0;
+            const isOverridden = req && (req.overrideName || req.overrideMaxPower || req.overrideUsageDuration || req.overrideHourlyPower);
+            
             return (
               <div key={device.id} className="p-4 flex items-center justify-between transition-colors hover:bg-slate-50/50">
-                <div>
-                  <p className="font-bold text-slate-800 text-sm">{device.name}</p>
-                  <p className="text-[10px] text-slate-400 uppercase font-bold tracking-tighter">{device.hourlyPower}kW • {device.usageDuration}h/j</p>
+                <div className="flex-1 min-w-0 pr-2">
+                  <div className="flex items-center gap-2">
+                    <p className={`font-bold text-sm truncate ${isOverridden ? 'text-blue-700' : 'text-slate-800'}`}>
+                      {req?.overrideName || device.name}
+                    </p>
+                    {isOverridden && <span className="w-1.5 h-1.5 rounded-full bg-blue-500" title="Valeurs personnalisées" />}
+                  </div>
+                  <p className="text-[10px] text-slate-400 uppercase font-bold tracking-tighter">
+                    {req?.overrideHourlyPower ?? device.hourlyPower}kW • {req?.overrideUsageDuration ?? device.usageDuration}h/j
+                  </p>
                 </div>
-                <div className="flex items-center gap-4 bg-slate-50 p-1.5 rounded-2xl border border-slate-100">
-                  <button onClick={() => handleUpdateRequirement(device.id, -1)} className="w-8 h-8 rounded-xl bg-white shadow-sm flex items-center justify-center text-slate-400 active:scale-95 transition-transform">
-                    <Minus size={14} />
-                  </button>
-                  <span className={`w-4 text-center font-black text-sm ${qty > 0 ? 'text-blue-600' : 'text-slate-300'}`}>{qty}</span>
-                  <button onClick={() => handleUpdateRequirement(device.id, 1)} className="w-8 h-8 rounded-xl bg-blue-600 text-white shadow-md shadow-blue-200 flex items-center justify-center active:scale-95 transition-transform">
-                    <Plus size={14} />
-                  </button>
+                <div className="flex items-center gap-2">
+                  {qty > 0 && (
+                    <button 
+                      onClick={() => setEditingReq({ req: req!, device })}
+                      className="p-2 text-slate-400 hover:text-blue-600 transition-colors"
+                    >
+                      <Edit3 size={16} />
+                    </button>
+                  )}
+                  <div className="flex items-center gap-4 bg-slate-50 p-1.5 rounded-2xl border border-slate-100">
+                    <button onClick={() => handleUpdateRequirement(device.id, -1)} className="w-8 h-8 rounded-xl bg-white shadow-sm flex items-center justify-center text-slate-400 active:scale-95 transition-transform">
+                      <Minus size={14} />
+                    </button>
+                    <span className={`w-4 text-center font-black text-sm ${qty > 0 ? 'text-blue-600' : 'text-slate-300'}`}>{qty}</span>
+                    <button onClick={() => handleUpdateRequirement(device.id, 1)} className="w-8 h-8 rounded-xl bg-blue-600 text-white shadow-md shadow-blue-200 flex items-center justify-center active:scale-95 transition-transform">
+                      <Plus size={14} />
+                    </button>
+                  </div>
                 </div>
               </div>
             );
           })}
         </div>
       </section>
+
+      {/* MODAL EDIT REQUIREMENT */}
+      {editingReq && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setEditingReq(null)}></div>
+          <div className="relative bg-white w-full max-w-md rounded-3xl p-6 shadow-2xl animate-in zoom-in fade-in duration-200">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-bold">Personnaliser l'appareil</h3>
+              <button onClick={() => setEditingReq(null)}><X size={24} className="text-slate-400" /></button>
+            </div>
+            
+            <form onSubmit={handleSaveOverride} className="space-y-4">
+              <div>
+                <label className="block text-xs font-black uppercase text-slate-400 mb-1 tracking-widest">Nom spécifique</label>
+                <input 
+                  type="text" 
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none" 
+                  value={editingReq.req.overrideName ?? editingReq.device.name} 
+                  onChange={(e) => setEditingReq({
+                    ...editingReq,
+                    req: { ...editingReq.req, overrideName: e.target.value }
+                  })} 
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-black uppercase text-slate-400 mb-1 tracking-widest">Puis. Max (W)</label>
+                  <input 
+                    type="number" 
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none" 
+                    value={editingReq.req.overrideMaxPower ?? editingReq.device.maxPower} 
+                    onChange={(e) => setEditingReq({
+                      ...editingReq,
+                      req: { ...editingReq.req, overrideMaxPower: Number(e.target.value) }
+                    })} 
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-black uppercase text-slate-400 mb-1 tracking-widest">Duree (h/j)</label>
+                  <input 
+                    type="number" 
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none" 
+                    value={editingReq.req.overrideUsageDuration ?? editingReq.device.usageDuration} 
+                    onChange={(e) => setEditingReq({
+                      ...editingReq,
+                      req: { ...editingReq.req, overrideUsageDuration: Number(e.target.value) }
+                    })} 
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-black uppercase text-slate-400 mb-1 tracking-widest">Conso Horaire (kW/h)</label>
+                <input 
+                  type="number" 
+                  step="0.1"
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none" 
+                  value={editingReq.req.overrideHourlyPower ?? editingReq.device.hourlyPower} 
+                  onChange={(e) => setEditingReq({
+                    ...editingReq,
+                    req: { ...editingReq.req, overrideHourlyPower: Number(e.target.value) }
+                  })} 
+                />
+              </div>
+              
+              <div className="flex gap-3 pt-4">
+                <button 
+                  type="button"
+                  onClick={() => setEditingReq({
+                    ...editingReq,
+                    req: { 
+                      ...editingReq.req, 
+                      overrideName: undefined,
+                      overrideMaxPower: undefined,
+                      overrideUsageDuration: undefined,
+                      overrideHourlyPower: undefined
+                    }
+                  })}
+                  className="flex-1 py-4 border border-slate-200 rounded-xl font-bold text-sm text-slate-500"
+                >
+                  Réinitialiser
+                </button>
+                <button type="submit" className="flex-[2] bg-blue-600 text-white py-4 rounded-xl font-bold text-sm shadow-lg">
+                  Appliquer à cette visite
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* PHOTOS */}
       <section className="space-y-3">
