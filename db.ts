@@ -1,5 +1,5 @@
 
-import { Dexie, type Table } from 'dexie';
+import Dexie, { type Table } from 'dexie';
 import { Client, Address, Device, Visit } from './types';
 
 export class SolarVisitDB extends Dexie {
@@ -10,8 +10,8 @@ export class SolarVisitDB extends Dexie {
 
   constructor() {
     super('SolarVisitDB');
-    // Use the version() method from the inherited Dexie class to define the database schema
-    // Fix: Using named import for Dexie class ensures 'version' is correctly typed in subclasses
+    // Define the database schema using the version() method from Dexie.
+    // If TypeScript complains about 'version' being a number, ensuring Dexie is imported as a default class solves the inheritance type conflict.
     this.version(1).stores({
       clients: 'id, name, email',
       addresses: 'id, clientId, label',
