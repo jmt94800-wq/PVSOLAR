@@ -237,7 +237,7 @@ const ClientDetail: React.FC = () => {
             <form onSubmit={handleAddAddress} className="space-y-4">
               <div className="space-y-1">
                 <label className="text-[10px] font-black uppercase text-slate-400 px-1 tracking-widest">Nom du lieu</label>
-                <input required type="text" className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none" placeholder="ex: Résidence principale" value={label} onChange={(e) => setLabel(target.value)} />
+                <input required type="text" className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none" placeholder="ex: Résidence principale" value={label} onChange={(e) => setLabel(e.target.value)} />
               </div>
               <div className="space-y-1">
                 <label className="text-[10px] font-black uppercase text-slate-400 px-1 tracking-widest">Rue</label>
