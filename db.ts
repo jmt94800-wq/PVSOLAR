@@ -1,7 +1,9 @@
 
-import { Dexie, type Table } from 'dexie';
+import Dexie from 'dexie';
+import type { Table } from 'dexie';
 import { Client, Address, Device, Visit } from './types';
 
+// Extend Dexie to create our database class
 export class SolarVisitDB extends Dexie {
   clients!: Table<Client>;
   addresses!: Table<Address>;
@@ -11,9 +13,7 @@ export class SolarVisitDB extends Dexie {
   constructor() {
     super('SolarVisitDB');
     // Define the database schema using the version() method from Dexie.
-    // Using the named import { Dexie } ensures that TypeScript correctly identifies 
-    // the base class and its inherited methods like .version() and .transaction().
-    // Fix: Using named import for Dexie class to ensure inheritance is properly typed.
+    // Fixed: Using default import for Dexie to ensure proper inheritance and typing of methods like .version() and .transaction().
     this.version(1).stores({
       clients: 'id, name, email',
       addresses: 'id, clientId, label',

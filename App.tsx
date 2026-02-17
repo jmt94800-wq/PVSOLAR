@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { HashRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
+import { HashRouter, Routes, Route, Link, useLocation } from 'react-router-dom';
 import { 
   LayoutDashboard, 
   Users, 
@@ -58,7 +58,7 @@ const Navigation = () => {
 
 const App: React.FC = () => {
   return (
-    <Router>
+    <HashRouter>
       <div className="min-h-screen bg-slate-50 pb-20">
         <header className="bg-white border-b border-slate-200 px-4 py-3 sticky top-0 z-40 flex justify-between items-center">
           <h1 className="text-xl font-bold text-blue-700 flex items-center gap-2">
@@ -94,7 +94,7 @@ const App: React.FC = () => {
 
         <Navigation />
       </div>
-    </Router>
+    </HashRouter>
   );
 };
 
