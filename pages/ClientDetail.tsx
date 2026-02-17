@@ -92,7 +92,7 @@ const ClientDetail: React.FC = () => {
 
   return (
     <div className="space-y-6 pb-20">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between px-1">
         <button onClick={() => navigate('/clients')} className="p-2 -ml-2 text-slate-600">
           <ArrowLeft size={24} />
         </button>
@@ -102,7 +102,7 @@ const ClientDetail: React.FC = () => {
               to={`/analysis/${visits[0].id}`} 
               className="flex items-center gap-2 px-3 py-2 bg-blue-50 text-blue-600 rounded-xl text-xs font-bold"
             >
-              <BarChart3 size={16} /> Dernière Analyse
+              <BarChart3 size={16} /> Analyse
             </Link>
           )}
           <button onClick={handleDeleteClient} className="text-red-500 p-2 bg-red-50 rounded-xl">
@@ -144,7 +144,7 @@ const ClientDetail: React.FC = () => {
         <div className="space-y-2 pt-2">
            <div className="flex justify-between items-center px-1">
              <span className="text-[10px] uppercase font-black text-slate-400 tracking-widest flex items-center gap-1">
-               <FileText size={12} /> Dossier Client (Commentaire)
+               <FileText size={12} /> Dossier Client
              </span>
              {clientNotes !== (client.notes || '') && (
                <button onClick={handleUpdateNotes} disabled={isUpdatingNotes} className="text-[10px] text-blue-600 font-black flex items-center gap-1 uppercase bg-blue-50 px-2 py-1 rounded-lg">
@@ -157,7 +157,7 @@ const ClientDetail: React.FC = () => {
             className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl text-xs text-slate-600 outline-none focus:ring-4 focus:ring-blue-500/5 min-h-[100px] transition-all"
             value={clientNotes}
             onChange={(e) => setClientNotes(e.target.value)}
-            placeholder="Historique du client, particularités du dossier..."
+            placeholder="Historique du client..."
            />
         </div>
       </div>
@@ -186,49 +186,9 @@ const ClientDetail: React.FC = () => {
               </button>
             </div>
           ))}
-          {addresses.length === 0 && (
-            <p className="text-center py-6 text-slate-300 text-xs italic font-medium">Aucune adresse enregistrée</p>
-          )}
         </div>
       </section>
 
-      <section className="space-y-3">
-        <div className="flex justify-between items-center px-1">
-          <h3 className="text-sm font-black uppercase text-slate-400 tracking-widest flex items-center gap-2">
-            <ClipboardList size={16} className="text-green-500" />
-            Interventions ({visits.length})
-          </h3>
-          <Link to="/visits" state={{ clientId: id }} className="text-blue-600 p-1.5 bg-blue-50 rounded-xl">
-            <Plus size={18} />
-          </Link>
-        </div>
-
-        <div className="space-y-2">
-          {visits.map(visit => (
-            <Link key={visit.id} to={`/visits/${visit.id}`} className="block bg-white p-4 rounded-2xl border border-slate-100 shadow-sm hover:border-blue-200 transition-all active:scale-98">
-              <div className="flex justify-between items-center">
-                <div className="flex items-center gap-4">
-                  <div className={`w-3 h-3 rounded-full ${visit.status === 'COMPLETED' ? 'bg-green-500' : 'bg-blue-500'} shadow-sm`} />
-                  <div>
-                    <p className="text-sm font-black text-slate-800">
-                      {new Date(visit.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}
-                    </p>
-                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
-                      {visit.status === 'COMPLETED' ? 'Clôturée' : 'À venir'} • {visit.requirements?.length || 0} équipements
-                    </p>
-                  </div>
-                </div>
-                <ChevronRight size={18} className="text-slate-200" />
-              </div>
-            </Link>
-          ))}
-          {visits.length === 0 && (
-            <p className="text-center py-6 text-slate-300 text-xs italic font-medium">Aucune visite pour ce client</p>
-          )}
-        </div>
-      </section>
-
-      {/* MODAL ADRESSE */}
       {showAddressModal && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setShowAddressModal(false)}></div>
@@ -237,7 +197,7 @@ const ClientDetail: React.FC = () => {
             <form onSubmit={handleAddAddress} className="space-y-4">
               <div className="space-y-1">
                 <label className="text-[10px] font-black uppercase text-slate-400 px-1 tracking-widest">Nom du lieu</label>
-                <input required type="text" className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none" placeholder="ex: Résidence principale" value={label} onChange={(e) => setLabel(e.target.value)} />
+                <input required type="text" className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none" value={label} onChange={(e) => setLabel(e.target.value)} />
               </div>
               <div className="space-y-1">
                 <label className="text-[10px] font-black uppercase text-slate-400 px-1 tracking-widest">Rue</label>
@@ -253,7 +213,7 @@ const ClientDetail: React.FC = () => {
                   <input required type="text" className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none" value={city} onChange={(e) => setCity(e.target.value)} />
                 </div>
               </div>
-              <button type="submit" className="w-full bg-blue-600 text-white py-5 rounded-3xl font-black text-lg mt-4 shadow-xl shadow-blue-200 active:scale-95 transition-all">
+              <button type="submit" className="w-full bg-blue-600 text-white py-5 rounded-3xl font-black text-lg mt-4 shadow-xl active:scale-95 transition-all">
                 Enregistrer
               </button>
             </form>
