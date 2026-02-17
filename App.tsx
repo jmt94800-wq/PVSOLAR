@@ -9,7 +9,8 @@ import {
   ClipboardList,
   Download,
   BarChart3,
-  ShieldCheck
+  ShieldCheck,
+  Table as TableIcon
 } from 'lucide-react';
 
 import Dashboard from './pages/Dashboard';
@@ -23,16 +24,17 @@ import ExportPage from './pages/ExportPage';
 import Analysis from './pages/Analysis';
 import ManagerInterventions from './pages/ManagerInterventions';
 import TeamCalendar from './pages/TeamCalendar';
+import ProjectSummary from './pages/ProjectSummary';
 
 const Navigation = () => {
   const location = useLocation();
   
   const navItems = [
     { path: '/', icon: LayoutDashboard, label: 'Tableau' },
+    { path: '/summary', icon: TableIcon, label: 'Récap' },
     { path: '/calendar', icon: CalendarIcon, label: 'Agenda' },
     { path: '/visits', icon: ClipboardList, label: 'Visites' },
     { path: '/clients', icon: Users, label: 'Clients' },
-    { path: '/manager/interventions', icon: ShieldCheck, label: 'Supervision' },
   ];
 
   return (
@@ -66,8 +68,8 @@ const App: React.FC = () => {
             SolarVisit <span className="text-slate-400 font-light">Pro</span>
           </h1>
           <div className="flex items-center gap-2">
-            <Link to="/analysis" className="p-2 text-slate-500 hover:text-blue-600 transition-colors">
-              <BarChart3 size={20} />
+            <Link to="/summary" className="p-2 text-slate-500 hover:text-blue-600 transition-colors" title="Récapitulatif Projet">
+              <TableIcon size={20} />
             </Link>
             <Link to="/export" className="p-2 text-slate-500 hover:text-blue-600 transition-colors">
               <Download size={20} />
@@ -87,6 +89,7 @@ const App: React.FC = () => {
             <Route path="/export" element={<ExportPage />} />
             <Route path="/analysis" element={<Analysis />} />
             <Route path="/analysis/:id" element={<Analysis />} />
+            <Route path="/summary" element={<ProjectSummary />} />
             <Route path="/manager/interventions" element={<ManagerInterventions />} />
             <Route path="/manager/calendar" element={<TeamCalendar />} />
           </Routes>

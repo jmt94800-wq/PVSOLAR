@@ -6,7 +6,7 @@ import { Visit, Client, Device } from '../types';
 import { 
   ClipboardList, Users, Zap, ChevronRight, 
   Calendar as CalendarIcon, PackageOpen, Database, Cloud,
-  ShieldCheck, TrendingUp
+  ShieldCheck, TrendingUp, Table as TableIcon
 } from 'lucide-react';
 
 const Dashboard: React.FC = () => {
@@ -66,6 +66,22 @@ const Dashboard: React.FC = () => {
           <span className="text-[10px] text-slate-400 uppercase font-semibold text-center">Réussies</span>
         </div>
       </div>
+
+      {/* NEW: Global Summary Quick Action */}
+      <Link to="/summary" className="block bg-gradient-to-r from-blue-600 to-blue-700 p-5 rounded-[28px] text-white shadow-xl shadow-blue-200 transition-all active:scale-[0.98]">
+        <div className="flex items-center justify-between">
+           <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-md">
+                 <TableIcon size={24} />
+              </div>
+              <div>
+                 <h3 className="font-black text-sm uppercase tracking-tight">Récapitulatif Projet</h3>
+                 <p className="text-[10px] text-blue-100 font-medium opacity-80">Vue globale de dimensionnement</p>
+              </div>
+           </div>
+           <ChevronRight size={20} className="opacity-50" />
+        </div>
+      </Link>
 
       {/* Team Pilotage Quick Link */}
       <section className="bg-slate-900 p-6 rounded-[32px] text-white shadow-xl shadow-slate-200 space-y-4">
