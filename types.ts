@@ -11,6 +11,9 @@ export interface Client {
   agentId: string;
 }
 
+export type ClientProfile = Client;
+export type ProspectEntry = Client;
+
 export interface Address {
   id: string;
   clientId: string;
@@ -32,7 +35,7 @@ export interface Device {
 export interface VisitRequirement {
   deviceId: string;
   quantity: number;
-  // Surcharges spécifiques à cette visite
+  includedInPeakPower?: boolean; // Case à cocher : inclus ou non dans la puissance crête
   overrideName?: string;
   overrideMaxPower?: number;
   overrideUsageDuration?: number;
@@ -51,6 +54,41 @@ export interface Visit {
   report: string;
   updatedAt: number;
   agentName: string;
+}
+
+// --- Nouveaux types pour l'export et les devis ---
+
+export interface ExportRow {
+  client: string;
+  lieu: string;
+  adresse: string;
+  date: string;
+  agent: string;
+  appareil: string;
+  puissanceHoraireKWh: number;
+  puissanceMaxW: number;
+  dureeHj: number;
+  quantite: number;
+  inclusPuissance: boolean;
+}
+
+export interface QuoteItem {
+  name: string;
+  quantity: number;
+  powerW: number;
+  durationH: number;
+  dailyKWh: number;
+  includedInPeakPower: boolean;
+}
+
+export interface QuoteData {
+  name: string;
+  address: string;
+  siteName: string;
+  visitDate: string;
+  items: QuoteItem[];
+  totalDailyKWh: number;
+  totalMaxW: number;
 }
 
 export interface AppDB {

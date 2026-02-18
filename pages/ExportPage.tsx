@@ -133,6 +133,7 @@ const ExportPage: React.FC = () => {
           return;
         }
 
+        // Use the inherited transaction method from Dexie on the db instance
         await db.transaction('rw', [db.clients, db.addresses, db.devices, db.visits], async () => {
           await db.clients.clear();
           await db.addresses.clear();

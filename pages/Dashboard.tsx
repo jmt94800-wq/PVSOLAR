@@ -2,11 +2,13 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { db } from '../db';
-import { Visit, Client, Device } from '../types';
+import { Visit, Client, Device, Address, QuoteData } from '../types';
+import { prepareQuoteData } from '../utils';
+import DashboardSummaryCard from '../components/Dashboard';
 import { 
   ClipboardList, Users, Zap, ChevronRight, 
   Calendar as CalendarIcon, PackageOpen, Database, Cloud,
-  ShieldCheck, TrendingUp, Table as TableIcon
+  ShieldCheck, TrendingUp, Table as TableIcon, Activity
 } from 'lucide-react';
 
 const Dashboard: React.FC = () => {
@@ -14,18 +16,20 @@ const Dashboard: React.FC = () => {
     clients: Client[];
     visits: Visit[];
     devices: Device[];
-  }>({ clients: [], visits: [], devices: [] });
+    addresses: Address[];
+  }>({ clients: [], visits: [], devices: [], addresses: [] });
   
   const teamId = localStorage.getItem('solar_team_id') || 'Personnel';
 
   useEffect(() => {
     const loadAll = async () => {
-      const [clients, visits, devices] = await Promise.all([
+      const [clients, visits, devices, addresses] = await Promise.all([
         db.clients.toArray(),
         db.visits.toArray(),
-        db.devices.toArray()
+        db.devices.toArray(),
+        db.addresses.toArray()
       ]);
-      setData({ clients, visits, devices });
+      setData({ clients, visits, devices, addresses });
     };
     loadAll();
   }, []);
@@ -39,6 +43,24 @@ const Dashboard: React.FC = () => {
         ...v,
         client: data.clients.find(c => c.id === v.clientId)
       }));
+  }, [data]);
+
+  const latestQuote = useMemo(() => {
+    const lastVisit = [...data.visits]
+      .filter(v => v.status === 'COMPLETED' || v.requirements.length > 0)
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
+
+    if (!lastVisit) return null;
+
+    const client = data.clients.find(c => c.id === lastVisit.clientId);
+    const address = data.addresses.find(a => a.id === lastVisit.addressId);
+    
+    if (!client) return null;
+
+    return {
+      id: lastVisit.id,
+      quote: prepareQuoteData(lastVisit, client, address, data.devices)
+    };
   }, [data]);
 
   return (
@@ -67,7 +89,19 @@ const Dashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* NEW: Global Summary Quick Action */}
+      {/* NEW: Latest Visit Summary Card */}
+      {latestQuote && (
+        <section className="space-y-3">
+          <div className="flex items-center justify-between px-1">
+            <h2 className="text-sm font-black uppercase text-slate-400 tracking-widest flex items-center gap-2">
+              <Activity size={16} className="text-blue-500" /> Focus Dernière Visite
+            </h2>
+          </div>
+          <DashboardSummaryCard data={latestQuote.quote} visitId={latestQuote.id} />
+        </section>
+      )}
+
+      {/* Global Summary Quick Action */}
       <Link to="/summary" className="block bg-gradient-to-r from-blue-600 to-blue-700 p-5 rounded-[28px] text-white shadow-xl shadow-blue-200 transition-all active:scale-[0.98]">
         <div className="flex items-center justify-between">
            <div className="flex items-center gap-4">

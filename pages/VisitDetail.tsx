@@ -7,7 +7,8 @@ import { compressImage } from '../utils/image';
 import { 
   ArrowLeft, Camera, Trash2, Plus, Minus, 
   CheckCircle, Zap, Save, FileText, 
-  MapPin, Notebook, Loader2, Edit3, X, BarChart3, Clock
+  MapPin, Notebook, Loader2, Edit3, X, BarChart3, Clock,
+  CheckSquare, Square
 } from 'lucide-react';
 
 const VisitDetail: React.FC = () => {
@@ -60,10 +61,16 @@ const VisitDetail: React.FC = () => {
         if (newQty === 0) return prev.filter(r => r.deviceId !== deviceId);
         return prev.map(r => r.deviceId === deviceId ? { ...r, quantity: newQty } : r);
       } else if (delta > 0) {
-        return [...prev, { deviceId, quantity: delta }];
+        return [...prev, { deviceId, quantity: delta, includedInPeakPower: true }];
       }
       return prev;
     });
+  };
+
+  const toggleInclusion = (deviceId: string) => {
+    setRequirements(prev => prev.map(r => 
+      r.deviceId === deviceId ? { ...r, includedInPeakPower: !(r.includedInPeakPower ?? true) } : r
+    ));
   };
 
   const handleSaveOverride = (e: React.FormEvent) => {
@@ -195,25 +202,34 @@ const VisitDetail: React.FC = () => {
           {catalogue.map((device) => {
             const req = requirements.find(r => r.deviceId === device.id);
             const qty = req?.quantity || 0;
+            const isInclus = req ? (req.includedInPeakPower ?? true) : true;
             const isOverridden = req && (req.overrideName || req.overrideMaxPower || req.overrideUsageDuration || req.overrideHourlyPower);
             
             return (
               <div key={device.id} className="p-4 flex items-center justify-between transition-colors hover:bg-slate-50/50">
+                <div className="flex items-center gap-3 shrink-0">
+                  <button 
+                    onClick={() => qty > 0 && toggleInclusion(device.id)}
+                    className={`transition-colors ${qty > 0 ? 'text-blue-600' : 'text-slate-200 cursor-default'}`}
+                  >
+                    {isInclus ? <CheckSquare size={20} /> : <Square size={20} />}
+                  </button>
+                </div>
                 <div className="flex-1 min-w-0 pr-2">
                   <div className="flex items-center gap-2">
-                    <p className={`font-bold text-sm truncate ${isOverridden ? 'text-blue-700' : 'text-slate-800'}`}>
+                    <p className={`font-bold text-sm truncate ${qty === 0 ? 'text-slate-300' : (isOverridden ? 'text-blue-700' : 'text-slate-800')}`}>
                       {req?.overrideName || device.name}
                     </p>
                     {isOverridden && <span className="w-1.5 h-1.5 rounded-full bg-blue-500" title="Valeurs personnalisées" />}
                   </div>
                   <div className="flex items-center gap-2 mt-0.5">
-                    <p className="text-[10px] text-slate-400 uppercase font-bold tracking-tighter">
+                    <p className={`text-[10px] uppercase font-bold tracking-tighter ${qty === 0 ? 'text-slate-200' : 'text-slate-400'}`}>
                       {req?.overrideHourlyPower ?? device.hourlyPower} kW/h
                     </p>
                     <span className="text-slate-200">•</span>
                     <div className="flex items-center gap-1">
-                       <Clock size={10} className="text-blue-400" />
-                       <p className="text-[10px] text-blue-600 font-black tracking-tight">
+                       <Clock size={10} className={qty > 0 ? 'text-blue-400' : 'text-slate-200'} />
+                       <p className={`text-[10px] font-black tracking-tight ${qty > 0 ? 'text-blue-600' : 'text-slate-200'}`}>
                          {req?.overrideUsageDuration ?? device.usageDuration} h/j
                        </p>
                     </div>
@@ -242,6 +258,9 @@ const VisitDetail: React.FC = () => {
             );
           })}
         </div>
+        <p className="text-[10px] text-slate-400 italic text-center px-4">
+          Cochez les cases pour inclure l'appareil dans le calcul de la puissance crête.
+        </p>
       </section>
 
       {/* MODAL EDIT REQUIREMENT */}

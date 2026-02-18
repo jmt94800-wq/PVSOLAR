@@ -6,7 +6,7 @@ import { Visit, Client, Device, Address } from '../types';
 import { 
   BarChart3, ArrowLeft, Zap, TrendingUp, 
   Activity, ArrowRight, User, Loader2 as LoaderIcon,
-  FileSpreadsheet
+  FileSpreadsheet, AlertCircle
 } from 'lucide-react';
 
 const Analysis: React.FC = () => {
@@ -55,13 +55,15 @@ const Analysis: React.FC = () => {
       const maxPower = req.overrideMaxPower ?? baseDevice.maxPower;
       const hourlyPower = req.overrideHourlyPower ?? baseDevice.hourlyPower;
       const duration = req.overrideUsageDuration ?? baseDevice.usageDuration;
+      const isIncluded = req.includedInPeakPower !== false;
 
       return {
-        totalPeakPower: acc.totalPeakPower + (maxPower * req.quantity),
+        totalPeakPower: acc.totalPeakPower + (isIncluded ? (maxPower * req.quantity) : 0),
         totalDailyConsumption: acc.totalDailyConsumption + (hourlyPower * duration * req.quantity),
-        deviceCount: acc.deviceCount + req.quantity
+        deviceCount: acc.deviceCount + req.quantity,
+        excludedCount: acc.excludedCount + (isIncluded ? 0 : 1)
       };
-    }, { totalPeakPower: 0, totalDailyConsumption: 0, deviceCount: 0 });
+    }, { totalPeakPower: 0, totalDailyConsumption: 0, deviceCount: 0, excludedCount: 0 });
   }, [data]);
 
   if (loading) return (
@@ -139,6 +141,11 @@ const Analysis: React.FC = () => {
                       <p className="text-xl font-black">{stats?.deviceCount}</p>
                    </div>
                 </div>
+                {stats?.excludedCount && stats.excludedCount > 0 ? (
+                  <div className="mt-4 flex items-center justify-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-blue-200 bg-white/5 py-2 rounded-full border border-white/5">
+                    <AlertCircle size={10} /> {stats.excludedCount} appareil(s) exclu(s) de la puissance crête
+                  </div>
+                ) : null}
               </div>
               <Zap className="absolute -right-8 -bottom-8 w-48 h-48 text-white/10 rotate-12" />
             </div>
@@ -163,6 +170,7 @@ const Analysis: React.FC = () => {
                       <th className="p-4 text-[9px] font-black text-slate-400 uppercase">Date Visite</th>
                       <th className="p-4 text-[9px] font-black text-slate-400 uppercase">Agent</th>
                       <th className="p-4 text-[9px] font-black text-slate-400 uppercase">Appareil</th>
+                      <th className="p-4 text-[9px] font-black text-slate-400 uppercase text-center">Inclus P. Crête</th>
                       <th className="p-4 text-[9px] font-black text-slate-400 uppercase text-center">P. Horaire (kWh)</th>
                       <th className="p-4 text-[9px] font-black text-slate-400 uppercase text-center">P. Max (W)</th>
                       <th className="p-4 text-[9px] font-black text-slate-400 uppercase text-center">Durée (h/j)</th>
@@ -174,14 +182,20 @@ const Analysis: React.FC = () => {
                       if (!baseDevice) return null;
                       const addr = data.visit?.address;
                       const fullAddr = addr ? `${addr.street}, ${addr.zip} ${addr.city}` : 'N/A';
+                      const isInclus = req.includedInPeakPower !== false;
                       return (
-                        <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
+                        <tr key={idx} className={`hover:bg-slate-50/50 transition-colors ${!isInclus ? 'opacity-60' : ''}`}>
                           <td className="p-4 text-[11px] font-bold text-slate-800 whitespace-nowrap">{data.visit?.client?.name}</td>
                           <td className="p-4 text-[11px] font-medium text-slate-600 whitespace-nowrap">{addr?.label || 'Résidence'}</td>
                           <td className="p-4 text-[10px] text-slate-500 max-w-[200px] truncate">{fullAddr}</td>
                           <td className="p-4 text-[11px] text-slate-600 whitespace-nowrap">{new Date(data.visit?.date || '').toLocaleDateString()}</td>
                           <td className="p-4 text-[11px] text-slate-600 whitespace-nowrap font-black">{data.visit?.agentName}</td>
                           <td className="p-4 text-[11px] font-black text-blue-700 whitespace-nowrap">{req.overrideName || baseDevice.name} x{req.quantity}</td>
+                          <td className="p-4 text-[11px] text-center">
+                            <span className={`px-2 py-0.5 rounded-md text-[8px] font-black uppercase ${isInclus ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>
+                              {isInclus ? 'Oui' : 'Non'}
+                            </span>
+                          </td>
                           <td className="p-4 text-[11px] font-bold text-slate-700 text-center">{(req.overrideHourlyPower ?? baseDevice.hourlyPower).toFixed(2)}</td>
                           <td className="p-4 text-[11px] font-bold text-slate-700 text-center">{(req.overrideMaxPower ?? baseDevice.maxPower).toLocaleString()}</td>
                           <td className="p-4 text-[11px] font-bold text-green-600 text-center">{(req.overrideUsageDuration ?? baseDevice.usageDuration)}</td>
