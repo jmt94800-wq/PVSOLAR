@@ -1,20 +1,25 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { db } from '../db';
 import { Device } from '../types';
-import { Zap, Plus, Trash2, X, Edit2 } from 'lucide-react';
+import { Zap, Plus, Trash2, X, Edit2, FileUp, Download, Loader2 } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
+import * as XLSX from 'xlsx';
 
 const Catalogue: React.FC = () => {
   const [devices, setDevices] = useState<Device[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [isImporting, setIsImporting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Form
   const [name, setName] = useState('');
   const [maxPower, setMaxPower] = useState('');
   const [usageDuration, setUsageDuration] = useState('');
   const [hourlyPower, setHourlyPower] = useState('');
+  const [includedInPeak, setIncludedInPeak] = useState(true);
+  const [notes, setNotes] = useState('');
 
   const loadData = async () => {
     const all = await db.devices.toArray();
@@ -32,7 +37,9 @@ const Catalogue: React.FC = () => {
       name,
       maxPower: Number(maxPower),
       usageDuration: Number(usageDuration),
-      hourlyPower: Number(hourlyPower)
+      hourlyPower: Number(hourlyPower),
+      defaultIncludedInPeakPower: includedInPeak,
+      notes
     };
 
     if (editingId) await db.devices.put(deviceData);
@@ -49,12 +56,14 @@ const Catalogue: React.FC = () => {
     setMaxPower(d.maxPower.toString());
     setUsageDuration(d.usageDuration.toString());
     setHourlyPower(d.hourlyPower.toString());
+    setIncludedInPeak(d.defaultIncludedInPeakPower ?? true);
+    setNotes(d.notes || '');
     setShowModal(true);
   };
 
   const resetForm = () => {
     setEditingId(null);
-    setName(''); setMaxPower(''); setUsageDuration(''); setHourlyPower('');
+    setName(''); setMaxPower(''); setUsageDuration(''); setHourlyPower(''); setIncludedInPeak(true); setNotes('');
   };
 
   const handleDelete = async (id: string) => {
@@ -63,16 +72,77 @@ const Catalogue: React.FC = () => {
     loadData();
   };
 
+  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsImporting(true);
+    const reader = new FileReader();
+
+    reader.onload = async (event) => {
+      try {
+        const content = event.target?.result;
+        let importedData: any[] = [];
+
+        if (file.name.endsWith('.json')) {
+          importedData = JSON.parse(content as string);
+        } else {
+          const workbook = XLSX.read(content, { type: 'binary' });
+          const sheetName = workbook.SheetNames[0];
+          importedData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
+        }
+
+        const devicesToImport: Device[] = importedData.map((item: any) => ({
+          id: uuidv4(),
+          name: item.Nom || item.name || 'Appareil sans nom',
+          maxPower: Number(item.Pmax || item.maxPower || 0),
+          hourlyPower: Number(item.PWh || item.hourlyPower || 0),
+          usageDuration: Number(item.durée || item.usageDuration || 0),
+          defaultIncludedInPeakPower: (item['Puissance crête'] || item.includedInPeakPower) === 'OUI' || item['Puissance crête'] === true,
+          notes: item.Commentaire || item.notes || ''
+        }));
+
+        if (devicesToImport.length > 0) {
+          await db.devices.bulkAdd(devicesToImport);
+          await loadData();
+          alert(`${devicesToImport.length} appareils importés avec succès.`);
+        }
+      } catch (err) {
+        console.error(err);
+        alert("Erreur lors de l'importation. Vérifiez le format du fichier.");
+      } finally {
+        setIsImporting(false);
+        if (fileInputRef.current) fileInputRef.current.value = '';
+      }
+    };
+
+    if (file.name.endsWith('.json')) {
+      reader.readAsText(file);
+    } else {
+      reader.readAsBinaryString(file);
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <h2 className="text-xl font-bold">Catalogue Appareils</h2>
-        <button 
-          onClick={() => { resetForm(); setShowModal(true); }}
-          className="bg-blue-600 text-white p-2 rounded-xl shadow-md"
-        >
-          <Plus size={24} />
-        </button>
+        <div className="flex gap-2">
+          <input type="file" ref={fileInputRef} className="hidden" accept=".json,.xlsx,.xls,.csv" onChange={handleImport} />
+          <button 
+            onClick={() => fileInputRef.current?.click()}
+            className="bg-slate-100 text-slate-600 p-2 rounded-xl border border-slate-200 hover:bg-slate-200 transition-colors"
+            title="Importer (JSON/Excel)"
+          >
+            {isImporting ? <Loader2 size={24} className="animate-spin" /> : <FileUp size={24} />}
+          </button>
+          <button 
+            onClick={() => { resetForm(); setShowModal(true); }}
+            className="bg-blue-600 text-white p-2 rounded-xl shadow-md"
+          >
+            <Plus size={24} />
+          </button>
+        </div>
       </div>
 
       <div className="grid gap-3">
@@ -86,7 +156,9 @@ const Catalogue: React.FC = () => {
                 <h3 className="font-bold text-slate-800">{device.name}</h3>
                 <div className="flex gap-2 mt-0.5">
                   <span className="text-[10px] bg-slate-50 text-slate-500 px-1.5 py-0.5 rounded-md font-bold uppercase">{device.maxPower}W Max</span>
-                  <span className="text-[10px] bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded-md font-bold uppercase">{device.hourlyPower}kWh/h</span>
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold uppercase ${device.defaultIncludedInPeakPower ? 'bg-blue-50 text-blue-600' : 'bg-slate-100 text-slate-400'}`}>
+                    P. Crête: {device.defaultIncludedInPeakPower ? 'OUI' : 'NON'}
+                  </span>
                 </div>
               </div>
             </div>
@@ -125,6 +197,24 @@ const Catalogue: React.FC = () => {
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-1">Consommation horaire (kW/h)</label>
                 <input required type="number" step="0.1" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none" value={hourlyPower} onChange={(e) => setHourlyPower(e.target.value)} />
+              </div>
+              <div className="flex items-center gap-3 bg-slate-50 p-3 rounded-xl border border-slate-100">
+                <input 
+                  type="checkbox" 
+                  id="incPeak" 
+                  className="w-5 h-5 accent-blue-600"
+                  checked={includedInPeak} 
+                  onChange={(e) => setIncludedInPeak(e.target.checked)} 
+                />
+                <label htmlFor="incPeak" className="text-sm font-bold text-slate-700">Inclus dans la puissance crête par défaut</label>
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-1">Commentaire</label>
+                <textarea 
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none h-20"
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                />
               </div>
               
               <button type="submit" className="w-full bg-blue-600 text-white py-4 rounded-xl font-bold text-lg mt-4 shadow-lg active:scale-[0.98]">

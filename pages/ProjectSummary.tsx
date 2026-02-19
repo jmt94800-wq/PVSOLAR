@@ -34,6 +34,7 @@ const ProjectSummary: React.FC = () => {
           db.devices.toArray()
         ]);
 
+        // La fonction flattenVisitData gère maintenant l'autonomie et la ligne Batterie
         const flattened = flattenVisitData(allVisits, allClients, allAddresses, allCatalogue);
         setRows(flattened);
       } catch (err) {

@@ -8,7 +8,7 @@ import {
   ArrowLeft, Camera, Trash2, Plus, Minus, 
   CheckCircle, Zap, Save, FileText, 
   MapPin, Notebook, Loader2, Edit3, X, BarChart3, Clock,
-  CheckSquare, Square
+  CheckSquare, Square, Battery
 } from 'lucide-react';
 
 const VisitDetail: React.FC = () => {
@@ -24,6 +24,7 @@ const VisitDetail: React.FC = () => {
   const [photos, setPhotos] = useState<string[]>([]);
   const [notes, setNotes] = useState('');
   const [report, setReport] = useState('');
+  const [autonomyDays, setAutonomyDays] = useState<number>(0);
   const [isSaving, setIsSaving] = useState(false);
   const [isCompressing, setIsCompressing] = useState(false);
 
@@ -41,6 +42,7 @@ const VisitDetail: React.FC = () => {
       setPhotos(v.photos || []);
       setNotes(v.notes || '');
       setReport(v.report || '');
+      setAutonomyDays(v.autonomyDays || 0);
 
       const c = await db.clients.get(v.clientId);
       if (c) setClient(c);
@@ -61,7 +63,8 @@ const VisitDetail: React.FC = () => {
         if (newQty === 0) return prev.filter(r => r.deviceId !== deviceId);
         return prev.map(r => r.deviceId === deviceId ? { ...r, quantity: newQty } : r);
       } else if (delta > 0) {
-        return [...prev, { deviceId, quantity: delta, includedInPeakPower: true }];
+        const dev = catalogue.find(d => d.id === deviceId);
+        return [...prev, { deviceId, quantity: delta, includedInPeakPower: dev?.defaultIncludedInPeakPower ?? true }];
       }
       return prev;
     });
@@ -118,6 +121,7 @@ const VisitDetail: React.FC = () => {
       photos,
       notes,
       report,
+      autonomyDays: Number(autonomyDays),
       status: complete ? 'COMPLETED' : visit.status,
       updatedAt: Date.now()
     };
@@ -178,9 +182,6 @@ const VisitDetail: React.FC = () => {
               <MapPin size={12} className="text-red-500" />
               <span className="font-medium underline decoration-red-200">{address?.label}: {address?.street}</span>
             </div>
-            <Link to={`/analysis/${id}`} className="text-[10px] font-black text-blue-600 bg-blue-50 px-2 py-1 rounded-lg uppercase tracking-widest flex items-center gap-1">
-              Détails Analyse <BarChart3 size={10} />
-            </Link>
           </div>
         </div>
         <div className="flex gap-3 pt-2">
@@ -194,6 +195,28 @@ const VisitDetail: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* AUTONOMY FIELD */}
+      <section className="space-y-3">
+        <h3 className="text-sm font-black uppercase text-slate-400 tracking-widest px-1 flex items-center gap-2">
+          <Battery size={16} className="text-green-600" /> Stockage & Autonomie
+        </h3>
+        <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm">
+          <label className="block text-[10px] font-black uppercase text-slate-400 mb-2 tracking-widest">Nombre de jours d'autonomie</label>
+          <div className="flex items-center gap-4">
+            <input 
+              type="number" 
+              min="0"
+              step="0.5"
+              className="flex-1 px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none font-bold text-slate-800"
+              value={autonomyDays}
+              onChange={(e) => setAutonomyDays(Number(e.target.value))}
+            />
+            <div className="bg-green-50 px-4 py-4 rounded-2xl text-green-700 font-bold text-xs uppercase">jours</div>
+          </div>
+          <p className="text-[9px] text-slate-400 mt-2 italic">Génère automatiquement une ligne de dimensionnement batterie pour l'export.</p>
+        </div>
+      </section>
 
       {/* REQUIREMENTS */}
       <section className="space-y-3">
@@ -258,9 +281,6 @@ const VisitDetail: React.FC = () => {
             );
           })}
         </div>
-        <p className="text-[10px] text-slate-400 italic text-center px-4">
-          Cochez les cases pour inclure l'appareil dans le calcul de la puissance crête.
-        </p>
       </section>
 
       {/* MODAL EDIT REQUIREMENT */}
@@ -352,61 +372,11 @@ const VisitDetail: React.FC = () => {
         </div>
       )}
 
-      {/* PHOTOS */}
+      {/* PHOTOS & NOTES (Reduced for space) */}
       <section className="space-y-3">
-        <div className="flex justify-between items-center px-1">
-          <h3 className="text-sm font-black uppercase text-slate-400 tracking-widest">Photos du Site ({photos.length})</h3>
-          <button 
-            onClick={() => fileInputRef.current?.click()} 
-            disabled={isCompressing}
-            className="text-blue-600 text-[10px] font-black bg-blue-50 px-4 py-2 rounded-xl flex items-center gap-1.5 uppercase tracking-wider disabled:opacity-50"
-          >
-            {isCompressing ? <Loader2 size={12} className="animate-spin" /> : <Camera size={14} />} 
-            Ajouter
-          </button>
-          <input type="file" ref={fileInputRef} className="hidden" accept="image/*" multiple onChange={handleFileChange} />
-        </div>
-        <div className="grid grid-cols-4 gap-2">
-          {photos.map((photo, idx) => (
-            <div key={idx} className="aspect-square relative rounded-2xl overflow-hidden shadow-sm group bg-slate-200">
-              <img src={photo} alt={`Site ${idx}`} className="w-full h-full object-cover" />
-              <button 
-                onClick={() => handleRemovePhoto(idx)} 
-                className="absolute top-1 right-1 p-1.5 bg-red-500/90 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
-              >
-                <Trash2 size={10} />
-              </button>
-            </div>
-          ))}
-          <button onClick={() => fileInputRef.current?.click()} className="aspect-square bg-white rounded-2xl flex items-center justify-center border-2 border-dashed border-slate-200 text-slate-300 hover:text-blue-300 hover:border-blue-200 transition-colors">
-            <Plus size={24} />
-          </button>
-        </div>
-      </section>
-
-      {/* REPORT */}
-      <section className="space-y-3">
-        <h3 className="text-sm font-black uppercase text-slate-400 tracking-widest px-1 flex items-center gap-2">
-          <Notebook size={14} className="text-green-600" />
-          Rapport de Visite Formel
-        </h3>
+        <h3 className="text-sm font-black uppercase text-slate-400 tracking-widest px-1">Observations</h3>
         <textarea 
-          className="w-full h-48 bg-white p-5 rounded-3xl border border-slate-200 text-sm outline-none focus:ring-4 focus:ring-blue-500/5 transition-all shadow-sm"
-          placeholder="Détaillez ici l'état de l'installation, les préconisations techniques, les obstacles éventuels..."
-          value={report}
-          onChange={(e) => setReport(e.target.value)}
-        />
-      </section>
-
-      {/* QUICK NOTES */}
-      <section className="space-y-3">
-        <h3 className="text-sm font-black uppercase text-slate-400 tracking-widest px-1 flex items-center gap-2">
-          <FileText size={14} className="text-slate-400" />
-          Observations rapides
-        </h3>
-        <input 
-          type="text"
-          className="w-full bg-white px-5 py-4 rounded-2xl border border-slate-200 text-sm outline-none shadow-sm"
+          className="w-full h-24 bg-white p-5 rounded-3xl border border-slate-200 text-sm outline-none"
           placeholder="Notes de terrain..."
           value={notes}
           onChange={(e) => setNotes(e.target.value)}

@@ -30,12 +30,14 @@ export interface Device {
   maxPower: number;
   usageDuration: number;
   hourlyPower: number;
+  defaultIncludedInPeakPower?: boolean;
+  notes?: string;
 }
 
 export interface VisitRequirement {
   deviceId: string;
   quantity: number;
-  includedInPeakPower?: boolean; // Case à cocher : inclus ou non dans la puissance crête
+  includedInPeakPower?: boolean;
   overrideName?: string;
   overrideMaxPower?: number;
   overrideUsageDuration?: number;
@@ -52,11 +54,10 @@ export interface Visit {
   photos: string[];
   notes: string;
   report: string;
+  autonomyDays?: number; // Nouveau champ : Nombre de jours d'autonomie
   updatedAt: number;
   agentName: string;
 }
-
-// --- Nouveaux types pour l'export et les devis ---
 
 export interface ExportRow {
   client: string;
