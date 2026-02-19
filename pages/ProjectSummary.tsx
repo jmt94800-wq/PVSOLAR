@@ -15,6 +15,7 @@ import {
   ArrowLeft
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import * as XLSX from 'xlsx';
 
 const ProjectSummary: React.FC = () => {
   const navigate = useNavigate();
@@ -34,7 +35,6 @@ const ProjectSummary: React.FC = () => {
           db.devices.toArray()
         ]);
 
-        // La fonction flattenVisitData gère maintenant l'autonomie et la ligne Batterie
         const flattened = flattenVisitData(allVisits, allClients, allAddresses, allCatalogue);
         setRows(flattened);
       } catch (err) {
@@ -74,7 +74,7 @@ const ProjectSummary: React.FC = () => {
   const exportCSV = () => {
     setExporting('csv');
     try {
-      const headers = ['Client', 'Lieu', 'Adresse', 'Date', 'Agent', 'Appareil', 'Inclus Puis. Crête', 'Puissance Horaire (kWh)', 'Puissance Max (W)', 'Duree (h/j)', 'Quantité'];
+      const headers = ['Client', 'Lieu', 'Adresse', 'Date', 'Agent', 'Appareil', 'Inclus Puis. Crête', 'Puissance Horaire (kWh)', 'Puissance Max (W)', 'Duree (h/j)', 'Quantité', 'Observations', "Nom de l'agent"];
       const csvContent = [
         headers.join(';'),
         ...filteredRows.map(row => [
@@ -88,7 +88,9 @@ const ProjectSummary: React.FC = () => {
           row.puissanceHoraireKWh.toString().replace('.', ','),
           row.puissanceMaxW,
           row.dureeHj.toString().replace('.', ','),
-          row.quantite
+          row.quantite,
+          `"${(row.observations || '').replace(/"/g, '""')}"`,
+          `"${row.nomAgent}"`
         ].join(';'))
       ].join('\n');
 
@@ -98,6 +100,34 @@ const ProjectSummary: React.FC = () => {
       link.href = url;
       link.download = `Projet_SolarVisit_${new Date().toISOString().split('T')[0]}.csv`;
       link.click();
+    } finally {
+      setTimeout(() => setExporting(null), 500);
+    }
+  };
+
+  const exportExcel = () => {
+    setExporting('excel');
+    try {
+      const exportData = filteredRows.map(row => ({
+        'Client': row.client,
+        'Lieu': row.lieu,
+        'Adresse': row.adresse,
+        'Date': row.date,
+        'Agent': row.agent,
+        'Appareil': row.appareil,
+        'Inclus Puis. Crête': row.inclusPuissance ? 'OUI' : 'NON',
+        'Puissance Horaire (kWh)': row.puissanceHoraireKWh,
+        'Puissance Max (W)': row.puissanceMaxW,
+        'Durée (h/j)': row.dureeHj,
+        'Quantité': row.quantite,
+        'Observations': row.observations,
+        "Nom de l'agent": row.nomAgent
+      }));
+
+      const worksheet = XLSX.utils.json_to_sheet(exportData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Dimensionnement");
+      XLSX.writeFile(workbook, `Projet_SolarVisit_${new Date().toISOString().split('T')[0]}.xlsx`);
     } finally {
       setTimeout(() => setExporting(null), 500);
     }
@@ -127,15 +157,25 @@ const ProjectSummary: React.FC = () => {
             onClick={exportJSON}
             disabled={!!exporting}
             className="p-3 bg-slate-100 text-slate-600 rounded-2xl hover:bg-slate-200 transition-colors shadow-sm"
+            title="Export JSON"
            >
              {exporting === 'json' ? <LoaderIcon size={18} className="animate-spin" /> : <FileJson size={18} />}
            </button>
            <button 
             onClick={exportCSV}
             disabled={!!exporting}
-            className="p-3 bg-green-50 text-green-600 rounded-2xl hover:bg-green-100 transition-colors shadow-sm"
+            className="p-3 bg-slate-100 text-slate-600 rounded-2xl hover:bg-slate-200 transition-colors shadow-sm"
+            title="Export CSV"
            >
              {exporting === 'csv' ? <LoaderIcon size={18} className="animate-spin" /> : <FileSpreadsheet size={18} />}
+           </button>
+           <button 
+            onClick={exportExcel}
+            disabled={!!exporting}
+            className="p-3 bg-green-50 text-green-600 rounded-2xl hover:bg-green-100 transition-colors shadow-sm"
+            title="Export Excel (.xlsx)"
+           >
+             {exporting === 'excel' ? <LoaderIcon size={18} className="animate-spin" /> : <FileSpreadsheet size={18} className="text-green-700" />}
            </button>
         </div>
       </div>
@@ -156,20 +196,21 @@ const ProjectSummary: React.FC = () => {
       <section className="px-1">
         <div className="bg-white rounded-[24px] border border-slate-100 shadow-xl overflow-hidden border-b-4 border-b-blue-600">
           <div className="overflow-x-auto no-scrollbar">
-            <table className="w-full text-left border-collapse min-w-[1300px]">
+            <table className="w-full text-left border-collapse min-w-[1600px]">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-100">
                   <th className="p-5 text-[9px] font-black text-slate-500 uppercase tracking-tighter sticky left-0 bg-slate-50 z-10 border-r border-slate-100">Client</th>
                   <th className="p-5 text-[9px] font-black text-slate-400 uppercase tracking-tighter">Lieu</th>
                   <th className="p-5 text-[9px] font-black text-slate-400 uppercase tracking-tighter">Adresse</th>
                   <th className="p-5 text-[9px] font-black text-slate-400 uppercase tracking-tighter">Date</th>
-                  <th className="p-5 text-[9px] font-black text-slate-400 uppercase tracking-tighter">Agent</th>
-                  <th className="p-5 text-[9px] font-black text-blue-600 uppercase tracking-tighter bg-blue-50/20">Appareil</th>
+                  <th className="p-5 text-[9px] font-black text-slate-400 uppercase tracking-tighter">Appareil</th>
                   <th className="p-5 text-[9px] font-black text-slate-400 uppercase tracking-tighter text-center">Inclus P. Crête</th>
                   <th className="p-5 text-[9px] font-black text-slate-400 uppercase tracking-tighter text-center">Quantité</th>
                   <th className="p-5 text-[9px] font-black text-slate-400 uppercase tracking-tighter text-center">P. Horaire (kWh)</th>
                   <th className="p-5 text-[9px] font-black text-slate-400 uppercase tracking-tighter text-center">P. Max (W)</th>
                   <th className="p-5 text-[9px] font-black text-slate-400 uppercase tracking-tighter text-center">Durée (h/j)</th>
+                  <th className="p-5 text-[9px] font-black text-slate-400 uppercase tracking-tighter">Observations</th>
+                  <th className="p-5 text-[9px] font-black text-slate-400 uppercase tracking-tighter">Agent</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
@@ -183,7 +224,6 @@ const ProjectSummary: React.FC = () => {
                     </td>
                     <td className="p-5 text-[10px] text-slate-400 truncate max-w-[200px]">{row.adresse}</td>
                     <td className="p-5 text-[10px] text-slate-500 whitespace-nowrap font-medium">{row.date}</td>
-                    <td className="p-5 text-[11px] text-slate-600 whitespace-nowrap font-black">{row.agent}</td>
                     <td className="p-5 text-[11px] font-black text-blue-700 whitespace-nowrap bg-blue-50/5">{row.appareil}</td>
                     <td className="p-5 text-[11px] text-center">
                        <span className={`px-2 py-0.5 rounded-md text-[8px] font-black uppercase ${row.inclusPuissance ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>
@@ -194,6 +234,8 @@ const ProjectSummary: React.FC = () => {
                     <td className="p-5 text-[11px] font-bold text-slate-700 text-center font-mono">{row.puissanceHoraireKWh.toFixed(2)}</td>
                     <td className="p-5 text-[11px] font-bold text-slate-700 text-center font-mono">{row.puissanceMaxW.toLocaleString()}</td>
                     <td className="p-5 text-[11px] font-bold text-green-600 text-center font-mono">{row.dureeHj}</td>
+                    <td className="p-5 text-[10px] text-slate-500 max-w-[200px] truncate italic">{(row.observations || '-')}</td>
+                    <td className="p-5 text-[11px] text-slate-600 whitespace-nowrap font-black">{row.nomAgent}</td>
                   </tr>
                 ))}
               </tbody>

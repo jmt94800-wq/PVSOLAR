@@ -71,6 +71,8 @@ export interface ExportRow {
   dureeHj: number;
   quantite: number;
   inclusPuissance: boolean;
+  observations: string; // Nouveau
+  nomAgent: string;     // Nouveau
 }
 
 export interface QuoteItem {

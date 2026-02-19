@@ -18,6 +18,8 @@ export const flattenVisitData = (
     
     let totalHourlyKWh = 0;
     let totalMaxW = 0;
+    const observationText = visit.report || visit.notes || '';
+    const agentNameText = visit.agentName || 'Inconnu';
 
     visit.requirements.forEach(req => {
       const device = catalogue.find(d => d.id === req.deviceId);
@@ -33,13 +35,15 @@ export const flattenVisitData = (
           lieu: address?.label || 'N/A',
           adresse: address ? `${address.street}, ${address.zip} ${address.city}` : 'N/A',
           date: new Date(visit.date).toLocaleDateString(),
-          agent: visit.agentName || 'Inconnu',
+          agent: agentNameText,
           appareil: req.overrideName || device.name,
           puissanceHoraireKWh: hKwh,
           puissanceMaxW: pMax,
           dureeHj: req.overrideUsageDuration ?? device.usageDuration,
           quantite: req.quantity,
-          inclusPuissance: req.includedInPeakPower !== false
+          inclusPuissance: req.includedInPeakPower !== false,
+          observations: observationText,
+          nomAgent: agentNameText
         });
       }
     });
@@ -51,13 +55,15 @@ export const flattenVisitData = (
         lieu: address?.label || 'N/A',
         adresse: address ? `${address.street}, ${address.zip} ${address.city}` : 'N/A',
         date: new Date(visit.date).toLocaleDateString(),
-        agent: visit.agentName || 'Inconnu',
+        agent: agentNameText,
         appareil: 'Batterie',
         puissanceHoraireKWh: totalHourlyKWh, // Somme des puissances horaires
         puissanceMaxW: totalMaxW,           // Somme des puissances maximum
         dureeHj: 0,
         quantite: 1,
-        inclusPuissance: false
+        inclusPuissance: false,
+        observations: observationText,
+        nomAgent: agentNameText
       });
     }
   });
@@ -92,7 +98,6 @@ export const prepareQuoteData = (
 
   // Logique batterie pour le devis également
   if (visit.autonomyDays && visit.autonomyDays > 0) {
-    const totalHKwh = items.reduce((sum, item) => sum + (item.dailyKWh / (item.durationH || 1)), 0);
     const totalMaxWCalc = items.reduce((sum, item) => sum + (item.powerW * item.quantity), 0);
     
     items.push({
