@@ -1,7 +1,5 @@
 {
-  "name": "SolarVisit Pro",
-  "description": "Une application de gestion de visites commerciales pour le secteur photovoltaïque, fonctionnant hors-ligne avec export Excel.",
-  "requestFramePermissions": [
-    "camera"
-  ]
+  "name": "SolarDevis Pro",
+  "description": "Une application professionnelle pour la génération de devis photovoltaïques à partir de données de consommation énergétique. Importez vos relevés, analysez les besoins et générez des devis structurés.",
+  "requestFramePermissions": []
 }
