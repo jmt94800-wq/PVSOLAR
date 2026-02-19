@@ -81,26 +81,34 @@ const Catalogue: React.FC = () => {
 
     reader.onload = async (event) => {
       try {
-        const content = event.target?.result;
+        const data = event.target?.result;
         let importedData: any[] = [];
 
         if (file.name.endsWith('.json')) {
-          importedData = JSON.parse(content as string);
+          importedData = JSON.parse(new TextDecoder().decode(data as ArrayBuffer));
         } else {
-          const workbook = XLSX.read(content, { type: 'binary' });
+          const workbook = XLSX.read(data, { type: 'array' });
           const sheetName = workbook.SheetNames[0];
           importedData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
         }
 
-        const devicesToImport: Device[] = importedData.map((item: any) => ({
-          id: uuidv4(),
-          name: item.Nom || item.name || 'Appareil sans nom',
-          maxPower: Number(item.Pmax || item.maxPower || 0),
-          hourlyPower: Number(item.PWh || item.hourlyPower || 0),
-          usageDuration: Number(item.durée || item.usageDuration || 0),
-          defaultIncludedInPeakPower: (item['Puissance crête'] || item.includedInPeakPower) === 'OUI' || item['Puissance crête'] === true,
-          notes: item.Commentaire || item.notes || ''
-        }));
+        const devicesToImport: Device[] = importedData.map((item: any) => {
+          // Normalisation de la valeur "Puissance crète" (OUI/NON)
+          const rawPeakValue = item['Puissance crète'] || item['Puissance crête'] || item.includedInPeakPower;
+          const isPeak = typeof rawPeakValue === 'string' 
+            ? rawPeakValue.toUpperCase() === 'OUI' 
+            : !!rawPeakValue;
+
+          return {
+            id: uuidv4(),
+            name: item.Nom || item.name || 'Appareil sans nom',
+            maxPower: Number(item.Pmax || item.maxPower || 0),
+            hourlyPower: Number(item.PWh || item.hourlyPower || 0),
+            usageDuration: Number(item.durée || item.duration || item.usageDuration || 0),
+            defaultIncludedInPeakPower: isPeak,
+            notes: item.Commentaire || item.notes || ''
+          };
+        });
 
         if (devicesToImport.length > 0) {
           await db.devices.bulkAdd(devicesToImport);
@@ -109,18 +117,14 @@ const Catalogue: React.FC = () => {
         }
       } catch (err) {
         console.error(err);
-        alert("Erreur lors de l'importation. Vérifiez le format du fichier.");
+        alert("Erreur lors de l'importation. Vérifiez le format du fichier (Colonnes requises: Nom, Pmax, PWh, durée, Puissance crète, Commentaire).");
       } finally {
         setIsImporting(false);
         if (fileInputRef.current) fileInputRef.current.value = '';
       }
     };
 
-    if (file.name.endsWith('.json')) {
-      reader.readAsText(file);
-    } else {
-      reader.readAsBinaryString(file);
-    }
+    reader.readAsArrayBuffer(file);
   };
 
   return (
