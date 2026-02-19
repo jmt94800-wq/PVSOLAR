@@ -10,7 +10,8 @@ import {
   Download,
   BarChart3,
   ShieldCheck,
-  Table as TableIcon
+  Table as TableIcon,
+  Settings
 } from 'lucide-react';
 
 import Dashboard from './pages/Dashboard';
@@ -33,12 +34,13 @@ const Navigation = () => {
     { path: '/', icon: LayoutDashboard, label: 'Tableau' },
     { path: '/summary', icon: TableIcon, label: 'Récap' },
     { path: '/calendar', icon: CalendarIcon, label: 'Agenda' },
+    { path: '/catalogue', icon: Zap, label: 'Matériel' },
     { path: '/visits', icon: ClipboardList, label: 'Visites' },
     { path: '/clients', icon: Users, label: 'Clients' },
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-2 py-2 z-50 flex justify-around items-center">
+    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-1 py-2 z-50 flex justify-around items-center">
       {navItems.map((item) => {
         const isActive = location.pathname.startsWith(item.path) && (item.path !== '/' || location.pathname === '/');
         return (
@@ -49,8 +51,8 @@ const Navigation = () => {
               isActive ? 'text-blue-600' : 'text-slate-500'
             }`}
           >
-            <item.icon size={20} className={isActive ? 'fill-blue-50' : ''} />
-            <span className="text-[10px] mt-1 font-medium">{item.label}</span>
+            <item.icon size={18} className={isActive ? 'fill-blue-50' : ''} />
+            <span className="text-[9px] mt-1 font-medium">{item.label}</span>
           </Link>
         );
       })}
