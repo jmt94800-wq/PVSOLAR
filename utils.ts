@@ -1,79 +1,125 @@
 
-import { ProspectEntry, ClientProfile } from './types';
+import { Visit, Client, Address, Device, ExportRow, QuoteData, QuoteItem } from './types';
 
-export const parseCSV = (csvText: string): ProspectEntry[] => {
-  const lines = csvText.split(/\r?\n/).filter(line => line.trim());
-  if (lines.length < 2) return [];
+/**
+ * Transforme les données de visites en lignes d'export à plat
+ */
+export const flattenVisitData = (
+  visits: Visit[],
+  clients: Client[],
+  addresses: Address[],
+  catalogue: Device[]
+): ExportRow[] => {
+  const rows: ExportRow[] = [];
 
-  const delimiter = lines[0].includes(';') ? ';' : ',';
-  
-  return lines.slice(1).map((line, idx) => {
-    const values = line.split(delimiter).map(v => v.replace(/^"|"$/g, '').trim());
-    const parseFrFloat = (val: string) => {
-      if (!val) return 0;
-      return parseFloat(val.replace(',', '.').replace(/[^0-9.-]/g, '')) || 0;
-    };
+  visits.forEach(visit => {
+    const client = clients.find(c => c.id === visit.clientId);
+    const address = addresses.find(a => a.id === visit.addressId);
+    
+    let totalHourlyKWh = 0;
+    let totalMaxW = 0;
+    const observationText = visit.report || visit.notes || '';
+    const agentNameText = visit.agentName || 'Inconnu';
 
+    visit.requirements.forEach(req => {
+      const device = catalogue.find(d => d.id === req.deviceId);
+      if (device) {
+        const hKwh = req.overrideHourlyPower ?? device.hourlyPower;
+        const pMax = req.overrideMaxPower ?? device.maxPower;
+        
+        totalHourlyKWh += hKwh * req.quantity;
+        totalMaxW += pMax * req.quantity;
+
+        rows.push({
+          client: client?.name || 'Inconnu',
+          lieu: address?.label || 'N/A',
+          adresse: address ? `${address.street}, ${address.zip} ${address.city}` : 'N/A',
+          date: new Date(visit.date).toLocaleDateString(),
+          agent: agentNameText,
+          appareil: req.overrideName || device.name,
+          puissanceHoraireKWh: hKwh,
+          puissanceMaxW: pMax,
+          dureeHj: req.overrideUsageDuration ?? device.usageDuration,
+          quantite: req.quantity,
+          inclusPuissance: req.includedInPeakPower !== false,
+          observations: observationText,
+          nomAgent: agentNameText
+        });
+      }
+    });
+
+    // Ajout de la ligne Batterie si autonomie > 0
+    if (visit.autonomyDays && visit.autonomyDays > 0) {
+      rows.push({
+        client: client?.name || 'Inconnu',
+        lieu: address?.label || 'N/A',
+        adresse: address ? `${address.street}, ${address.zip} ${address.city}` : 'N/A',
+        date: new Date(visit.date).toLocaleDateString(),
+        agent: agentNameText,
+        appareil: 'Batterie',
+        puissanceHoraireKWh: totalHourlyKWh, // Somme des puissances horaires
+        puissanceMaxW: totalMaxW,           // Somme des puissances maximum
+        dureeHj: 0,
+        quantite: 1,
+        inclusPuissance: false,
+        observations: observationText,
+        nomAgent: agentNameText
+      });
+    }
+  });
+
+  return rows;
+};
+
+/**
+ * Prépare les données pour le générateur de devis ou le dashboard
+ */
+export const prepareQuoteData = (
+  visit: Visit,
+  client: Client,
+  address: Address | undefined,
+  catalogue: Device[]
+): QuoteData => {
+  const items: QuoteItem[] = (visit.requirements || []).map(req => {
+    const device = catalogue.find(d => d.id === req.deviceId);
+    const powerW = req.overrideMaxPower ?? device?.maxPower ?? 0;
+    const durationH = req.overrideUsageDuration ?? device?.usageDuration ?? 0;
+    const hourlyKWh = req.overrideHourlyPower ?? device?.hourlyPower ?? 0;
+    
     return {
-      id: `csv-${idx}-${Date.now()}`,
-      client: values[0] || '',
-      lieu: values[1] || '',
-      adresse: values[2] || '',
-      date: values[3] || '',
-      agent: values[4] || '',
-      appareil: values[5] || '',
-      inclusPuisCrete: values[6] ? values[6].toUpperCase() === 'OUI' : true,
-      puissanceHoraireKWh: Math.max(0, parseFrFloat(values[7])),
-      puissanceMaxW: Math.max(0, parseFrFloat(values[8])),
-      dureeHj: Math.max(0, parseFrFloat(values[9])),
-      quantite: Math.max(0, parseInt(values[10], 10) || 0),
-      unitPrice: 0,
-      observations: values[11] || '',
-      agentName: values[12] || values[4] || '' // Fallback sur la colonne agent si colonne 12 vide
+      name: req.overrideName || device?.name || 'Appareil inconnu',
+      quantity: req.quantity,
+      powerW,
+      durationH,
+      dailyKWh: hourlyKWh * durationH * req.quantity,
+      includedInPeakPower: req.includedInPeakPower !== false
     };
   });
-};
 
-export const calculateTotals = (items: ProspectEntry[]) => {
-  const dailyKWh = items.reduce((sum, i) => sum + (i.inclusPuisCrete && i.quantite > 0 ? i.puissanceHoraireKWh * i.dureeHj * i.quantite : 0), 0);
-  const maxW = items.reduce((sum, i) => sum + (i.inclusPuisCrete && i.quantite > 0 ? i.puissanceMaxW * i.quantite : 0), 0);
-  return { totalDailyKWh: dailyKWh, totalMaxW: maxW };
-};
+  // Logique batterie pour le devis également
+  if (visit.autonomyDays && visit.autonomyDays > 0) {
+    const totalMaxWCalc = items.reduce((sum, item) => sum + (item.powerW * item.quantity), 0);
+    
+    items.push({
+      name: `Batterie (Autonomie: ${visit.autonomyDays}j)`,
+      quantity: 1,
+      powerW: totalMaxWCalc,
+      durationH: 0,
+      dailyKWh: 0,
+      includedInPeakPower: false
+    });
+  }
 
-export const groupByClient = (entries: ProspectEntry[]): ClientProfile[] => {
-  const groups: Record<string, ProspectEntry[]> = {};
-  
-  entries.forEach(entry => {
-    const key = `${entry.client}-${entry.adresse}`;
-    if (!groups[key]) groups[key] = [];
-    groups[key].push(entry);
-  });
+  const totalDailyKWh = items.reduce((sum, item) => sum + item.dailyKWh, 0);
+  const totalMaxW = items.reduce((sum, item) => sum + (item.includedInPeakPower ? (item.powerW * item.quantity) : 0), 0);
 
-  return Object.values(groups).map(items => {
-    const first = items[0];
-    const totals = calculateTotals(items);
-    return {
-      name: first.client,
-      address: first.adresse,
-      siteName: first.lieu,
-      visitDate: first.date,
-      items,
-      observations: first.observations || '',
-      agentName: first.agentName || first.agent || '',
-      ...totals
-    };
-  });
-};
-
-export const calculateSolarSpecs = (dailyKWh: number, panelPowerW: number = 425, efficiencyPercent: number = 80) => {
-  const hsp = 5.2; 
-  const basicKWp = dailyKWh / hsp; 
-  const efficiencyFactor = Math.max(0.1, efficiencyPercent / 100);
-  const neededKWp = basicKWp / efficiencyFactor;
-  
-  const panelCount = Math.ceil((neededKWp * 1000) / Math.max(1, panelPowerW));
   return {
-    neededKWp: parseFloat(neededKWp.toFixed(2)),
-    panelCount
+    name: client.name || 'Client sans nom',
+    address: address ? `${address.street}, ${address.zip} ${address.city}` : 'Adresse non renseignée',
+    siteName: address?.label || 'Site par défaut',
+    visitDate: visit.date ? new Date(visit.date).toLocaleDateString('fr-FR') : 'Date inconnue',
+    items,
+    totalDailyKWh,
+    totalMaxW
   };
 };

@@ -1,17 +1,20 @@
 
 import React from 'react';
-import { createRoot } from 'react-dom/client';
+import ReactDOM from 'react-dom/client';
 import App from './App';
+import { seedDevices } from './db';
 
 const rootElement = document.getElementById('root');
-
-if (rootElement) {
-  const root = createRoot(rootElement);
-  root.render(
-    <React.StrictMode>
-      <App />
-    </React.StrictMode>
-  );
-} else {
-  console.error("Élément racine #root introuvable.");
+if (!rootElement) {
+  throw new Error("Could not find root element to mount to");
 }
+
+// Initialize seed data for the first time
+seedDevices().catch(console.error);
+
+const root = ReactDOM.createRoot(rootElement);
+root.render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>
+);
